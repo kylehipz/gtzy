@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"gtzy/internal/ai"
 	"gtzy/internal/api"
 	"gtzy/internal/cli"
 	"gtzy/internal/db"
@@ -48,7 +49,7 @@ func runServe(args []string) int {
 	}
 	defer conn.Close()
 
-	server := &api.Server{DB: conn}
+	server := &api.Server{DB: conn, AI: ai.New()}
 	handler := api.NewRouter(server, nil)
 
 	addr := fmt.Sprintf(":%d", *port)
