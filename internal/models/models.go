@@ -111,6 +111,8 @@ type EstVsActualDay struct {
 	Date             string `json:"date"`
 	EstimatedMinutes int    `json:"estimated_minutes"`
 	ActualSeconds    int64  `json:"actual_seconds"`
+	Total            int    `json:"total"`
+	Done             int    `json:"done"`
 }
 
 type CategoryTime struct {

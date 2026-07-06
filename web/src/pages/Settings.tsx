@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Pause, Play, Plus, Trash2 } from 'lucide-react'
 import { ThemeSwitcher } from '../components/ThemeSwitcher'
+import { ColorSwatch } from '../components/ColorSwatch'
+import { Modal } from '../components/Modal'
 import { ACCENTS } from '../theme/ThemeProvider'
 import {
   useCategories,
@@ -8,6 +10,7 @@ import {
   useDeleteCategory,
   useDeleteRecurrence,
   useRecurrences,
+  useUpdateCategory,
   useUpdateRecurrence,
 } from '../lib/queries'
 
@@ -30,9 +33,11 @@ function repeatSummary(r: { freq: string; interval: number; days_of_week: string
 export function Settings() {
   const { data: categories = [] } = useCategories()
   const createCategory = useCreateCategory()
+  const updateCategory = useUpdateCategory()
   const deleteCategory = useDeleteCategory()
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryColor, setNewCategoryColor] = useState<string>('mauve')
+  const [showAddCategory, setShowAddCategory] = useState(false)
 
   const { data: recurrences = [] } = useRecurrences()
   const updateRecurrence = useUpdateRecurrence()
@@ -47,43 +52,30 @@ export function Settings() {
       </Section>
 
       <Section title="Categories">
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault()
-            if (!newCategoryName.trim()) return
-            await createCategory.mutateAsync({ name: newCategoryName.trim(), color: newCategoryColor })
-            setNewCategoryName('')
-          }}
-          className="flex flex-wrap items-center gap-2"
+        <button
+          type="button"
+          onClick={() => setShowAddCategory(true)}
+          className="flex items-center gap-1.5 self-start rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-base hover:opacity-90"
         >
-          <input
-            value={newCategoryName}
-            onChange={(e) => setNewCategoryName(e.target.value)}
-            placeholder="New category name"
-            className="rounded-lg border border-surface0 bg-mantle px-3 py-1.5 text-sm text-text outline-none focus:border-accent"
-          />
-          <select
-            value={newCategoryColor}
-            onChange={(e) => setNewCategoryColor(e.target.value)}
-            className="rounded-lg border border-surface0 bg-mantle px-2 py-1.5 text-sm text-text"
-          >
-            {ACCENTS.map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
-            ))}
-          </select>
-          <button type="submit" className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-base">
-            <Plus size={14} /> Add
-          </button>
-        </form>
+          <Plus size={14} /> Add category
+        </button>
 
         <div className="flex flex-col gap-2">
           {categories.map((c) => (
-            <div key={c.id} className="flex items-center justify-between rounded-lg border border-surface0 bg-mantle p-2.5">
-              <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: `var(--ctp-${c.color})` }} />
-                <span className="text-sm text-text">{c.name}</span>
+            <div
+              key={c.id}
+              className="flex flex-wrap items-center gap-2 rounded-lg border border-surface0 bg-mantle p-2.5"
+            >
+              <span className="text-sm text-text">{c.name}</span>
+              <div className="ml-auto flex flex-wrap justify-end gap-1">
+                {ACCENTS.map((a) => (
+                  <ColorSwatch
+                    key={a}
+                    color={a}
+                    selected={c.color === a}
+                    onClick={() => updateCategory.mutate({ id: c.id, patch: { color: a } })}
+                  />
+                ))}
               </div>
               <button type="button" onClick={() => deleteCategory.mutate(c.id)} className="text-subtext0 hover:text-red">
                 <Trash2 size={14} />
@@ -92,6 +84,40 @@ export function Settings() {
           ))}
         </div>
       </Section>
+
+      {showAddCategory && (
+        <Modal title="Add category" onClose={() => setShowAddCategory(false)}>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault()
+              if (!newCategoryName.trim()) return
+              await createCategory.mutateAsync({ name: newCategoryName.trim(), color: newCategoryColor })
+              setNewCategoryName('')
+              setShowAddCategory(false)
+            }}
+            className="flex flex-col gap-4"
+          >
+            <input
+              autoFocus
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="Category name"
+              className="rounded-lg border border-surface0 bg-base px-3 py-2 text-sm text-text outline-none focus:border-accent"
+            />
+            <div className="flex flex-wrap gap-2">
+              {ACCENTS.map((a) => (
+                <ColorSwatch key={a} color={a} selected={newCategoryColor === a} onClick={() => setNewCategoryColor(a)} />
+              ))}
+            </div>
+            <button
+              type="submit"
+              className="self-start rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-base hover:opacity-90"
+            >
+              Add
+            </button>
+          </form>
+        </Modal>
+      )}
 
       <Section title="Recurring tasks">
         {recurrences.length === 0 ? (
@@ -109,7 +135,9 @@ export function Settings() {
                     type="button"
                     title={r.active ? 'Pause' : 'Resume'}
                     onClick={() => updateRecurrence.mutate({ id: r.id, patch: { active: !r.active } })}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-subtext0 hover:bg-surface0 hover:text-text"
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                      r.active ? 'text-peach hover:bg-peach/10' : 'text-green hover:bg-green/10'
+                    }`}
                   >
                     {r.active ? <Pause size={14} /> : <Play size={14} />}
                   </button>
@@ -117,7 +145,7 @@ export function Settings() {
                     type="button"
                     title="Delete rule + future instances"
                     onClick={() => deleteRecurrence.mutate({ id: r.id, hard: true })}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-subtext0 hover:bg-surface0 hover:text-red"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-red hover:bg-red/10"
                   >
                     <Trash2 size={14} />
                   </button>

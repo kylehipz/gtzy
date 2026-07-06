@@ -70,6 +70,8 @@ export interface EstVsActualDay {
   date: string
   estimated_minutes: number
   actual_seconds: number
+  total: number
+  done: number
 }
 
 export interface CategoryTime {

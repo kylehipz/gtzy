@@ -44,7 +44,7 @@ func TestStatsRangeAggregation(t *testing.T) {
 	_ = t2
 	_ = t3
 
-	stats, err := ss.Range("2026-07-01", "2026-07-31")
+	stats, err := ss.Range("2026-07-01", "2026-07-31", "")
 	if err != nil {
 		t.Fatalf("range: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestStatsRangeAggregation(t *testing.T) {
 func TestStatsRangeEmpty(t *testing.T) {
 	_, ss := newStatsTestDBs(t)
 
-	stats, err := ss.Range("2026-01-01", "2026-01-31")
+	stats, err := ss.Range("2026-01-01", "2026-01-31", "")
 	if err != nil {
 		t.Fatalf("range: %v", err)
 	}

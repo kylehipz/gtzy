@@ -16,6 +16,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Today />} />
           <Route path="/calendar" element={<Calendar />} />
+          <Route path="/calendar/:date" element={<Calendar />} />
           <Route path="/journal" element={<Journal />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/settings" element={<Settings />} />

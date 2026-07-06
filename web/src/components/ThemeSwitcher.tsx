@@ -1,4 +1,5 @@
-import { ACCENTS, FLAVORS, useTheme, type Accent, type Flavor } from '../theme/ThemeProvider'
+import { ACCENTS, FLAVORS, useTheme, type Flavor } from '../theme/ThemeProvider'
+import { ColorSwatch } from './ColorSwatch'
 
 const FLAVOR_LABELS: Record<Flavor, string> = {
   latte: 'Latte',
@@ -35,24 +36,10 @@ export function ThemeSwitcher() {
         <p className="mb-2 text-xs font-medium uppercase tracking-wide text-subtext0">Accent</p>
         <div className="flex flex-wrap gap-2">
           {ACCENTS.map((a) => (
-            <AccentDot key={a} accent={a} selected={accent === a} onClick={() => setAccent(a)} />
+            <ColorSwatch key={a} color={a} selected={accent === a} onClick={() => setAccent(a)} />
           ))}
         </div>
       </div>
     </div>
-  )
-}
-
-function AccentDot({ accent, selected, onClick }: { accent: Accent; selected: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      title={accent}
-      onClick={onClick}
-      className={`h-7 w-7 rounded-full border-2 transition-transform ${
-        selected ? 'scale-110 border-text' : 'border-transparent hover:scale-105'
-      }`}
-      style={{ backgroundColor: `var(--ctp-${accent})` }}
-    />
   )
 }

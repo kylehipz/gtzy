@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { MonthGrid } from '../components/MonthGrid'
 import { DayTimeline } from '../components/DayTimeline'
@@ -11,12 +12,14 @@ export function Calendar() {
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth() + 1)
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const { date: selectedDate } = useParams<{ date?: string }>()
+  const navigate = useNavigate()
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [categoryFilter, setCategoryFilter] = useState('')
 
-  const { data: days = [] } = useMonth(year, month)
+  const { data: days = [] } = useMonth(year, month, categoryFilter || undefined)
   const { data: categories = [] } = useCategories()
-  const { data: dayTasks = [] } = useTasks({ date: selectedDate ?? '' })
+  const { data: dayTasks = [] } = useTasks({ date: selectedDate ?? '', category_id: categoryFilter || undefined })
   const categoryById = new Map(categories.map((c) => [c.id, c]))
 
   function shiftMonth(delta: number) {
@@ -40,10 +43,37 @@ export function Calendar() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-text">Calendar</h1>
         {selectedDate && (
-          <button type="button" onClick={() => setSelectedDate(null)} className="text-sm text-accent">
+          <button type="button" onClick={() => navigate('/calendar')} className="text-sm text-accent">
             Back to month
           </button>
         )}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={() => setCategoryFilter('')}
+          className={`rounded-lg border px-2.5 py-1 text-xs transition-colors ${
+            categoryFilter === '' ? 'border-accent bg-accent/15 text-accent' : 'border-surface0 text-subtext0 hover:border-surface1'
+          }`}
+        >
+          All categories
+        </button>
+        {categories.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => setCategoryFilter(String(c.id))}
+            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors ${
+              categoryFilter === String(c.id)
+                ? 'border-accent bg-accent/15 text-accent'
+                : 'border-surface0 text-subtext0 hover:border-surface1'
+            }`}
+          >
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: `var(--ctp-${c.color})` }} />
+            {c.name}
+          </button>
+        ))}
       </div>
 
       {!selectedDate ? (
@@ -57,12 +87,12 @@ export function Calendar() {
               <ChevronRight size={18} />
             </button>
           </div>
-          <MonthGrid year={year} month={month} days={days} onSelectDay={setSelectedDate} />
+          <MonthGrid year={year} month={month} days={days} onSelectDay={(d) => navigate(`/calendar/${d}`)} />
         </>
       ) : (
         <>
           <h2 className="text-lg font-medium text-text">{selectedDate}</h2>
-          <DayTimeline tasks={dayTasks} categoryById={categoryById} onSelectTask={setEditingTask} />
+          <DayTimeline tasks={dayTasks} categoryById={categoryById} onSelectTask={setEditingTask} date={selectedDate} />
         </>
       )}
 

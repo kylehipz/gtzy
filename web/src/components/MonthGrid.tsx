@@ -1,3 +1,4 @@
+import { Check, X } from 'lucide-react'
 import type { CalendarDay } from '../lib/types'
 
 const STATE_STYLES: Record<CalendarDay['state'], string> = {
@@ -41,7 +42,11 @@ export function MonthGrid({
             className={`flex aspect-square flex-col items-center justify-center rounded-lg border text-sm text-text transition-transform hover:scale-105 ${STATE_STYLES[day.state]}`}
             style={day.total > 0 ? { opacity: 0.5 + day.ratio * 0.5 } : undefined}
           >
-            <span>{dayNum}</span>
+            <span className="flex items-center gap-1">
+              {dayNum}
+              {day.state === 'complete' && <Check size={12} className="text-green" />}
+              {day.state === 'missed' && <X size={12} className="text-red" />}
+            </span>
             {day.total > 0 && (
               <span className="text-[10px] text-subtext0">
                 {day.done}/{day.total}

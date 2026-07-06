@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { Category, Priority, Task } from '../lib/types'
@@ -47,6 +47,14 @@ export function TaskForm({
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
   const createRecurrence = useCreateRecurrence()
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   function toggleWeekday(n: number) {
     setWeekdays((prev) => (prev.includes(n) ? prev.filter((d) => d !== n) : [...prev, n].sort()))
@@ -105,7 +113,12 @@ export function TaskForm({
   }
 
   return (
-    <div className="fixed inset-0 z-20 flex items-center justify-center bg-crust/60 p-4">
+    <div
+      className="fixed inset-0 z-20 flex items-center justify-center bg-crust/60 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
       <motion.form
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}

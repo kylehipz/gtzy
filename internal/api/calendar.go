@@ -28,7 +28,8 @@ func (s *Server) registerCalendarRoutes(r chi.Router) {
 				month = v
 			}
 		}
-		days, err := cs.Month(year, month)
+		categoryID := q.Get("category_id")
+		days, err := cs.Month(year, month, categoryID)
 		if err != nil {
 			writeErr(w, http.StatusInternalServerError, err.Error())
 			return

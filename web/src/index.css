@@ -23,3 +23,10 @@ body {
 * {
   scrollbar-color: var(--ctp-surface2) var(--ctp-mantle);
 }
+
+button:not(:disabled),
+a,
+[role='button'],
+summary {
+  cursor: pointer;
+}

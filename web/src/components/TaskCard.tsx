@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Check, Pause, Play, Repeat, Trash2 } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { AlertTriangle, Check, Clock, GripVertical, Pause, Play, Repeat, Timer, Trash2 } from 'lucide-react'
+import type { DragControls } from 'framer-motion'
 import type { Category, Task } from '../lib/types'
 import { elapsedSecondsLive, fmtDuration } from '../lib/time'
 import { PriorityBadge } from './PriorityBadge'
@@ -11,10 +11,12 @@ export function TaskCard({
   task,
   category,
   onEdit,
+  dragControls,
 }: {
   task: Task
   category: Category | null | undefined
   onEdit: () => void
+  dragControls?: DragControls
 }) {
   const startTask = useStartTask()
   const pauseTask = usePauseTask()
@@ -30,17 +32,33 @@ export function TaskCard({
 
   const elapsed = elapsedSecondsLive(task.active_started_at, task.actual_seconds)
   const done = task.status === 'done'
+  const overEstimate = task.estimated_minutes > 0 && elapsed > task.estimated_minutes * 60
+
+  const tint = category
+    ? {
+        backgroundColor: `color-mix(in oklab, var(--ctp-${category.color}) 12%, var(--ctp-mantle))`,
+        borderColor: `color-mix(in oklab, var(--ctp-${category.color}) 35%, var(--ctp-surface0))`,
+      }
+    : undefined
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.97 }}
+    <div
+      style={tint}
       className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${
-        task.is_active ? 'border-accent/50 bg-accent/5' : 'border-surface0 bg-mantle'
-      } ${done ? 'opacity-60' : ''}`}
+        category ? '' : task.is_active ? 'border-accent/50 bg-accent/5' : 'border-surface0 bg-mantle'
+      } ${task.is_active ? 'ring-1 ring-accent' : ''} ${done ? 'opacity-60' : ''}`}
     >
+      {dragControls && (
+        <button
+          type="button"
+          onPointerDown={(e) => dragControls.start(e)}
+          className="flex h-8 w-8 shrink-0 cursor-grab items-center justify-center text-subtext0 active:cursor-grabbing"
+          aria-label="Reorder"
+        >
+          <GripVertical size={14} />
+        </button>
+      )}
+
       <button
         type="button"
         onClick={() => (done ? undefined : completeTask.mutate(task.id))}
@@ -59,41 +77,69 @@ export function TaskCard({
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <PriorityBadge priority={task.priority} />
           <CategoryBadge category={category} />
-          {task.scheduled_start && <span className="text-xs text-subtext0">{task.scheduled_start}</span>}
-          <span className="font-mono text-xs text-subtext0">
+          {task.scheduled_start && (
+            <span className="flex items-center gap-1 text-xs text-subtext0">
+              <Clock size={12} />
+              {task.scheduled_start}
+            </span>
+          )}
+          <span className={`flex items-center gap-1 font-mono text-xs ${overEstimate ? 'text-red' : 'text-subtext0'}`}>
+            <Timer size={12} />
             {fmtDuration(elapsed)}
             {task.estimated_minutes > 0 && ` / ${fmtDuration(task.estimated_minutes * 60)}`}
+            {overEstimate && (
+              <span title={`Over estimate by ${fmtDuration(elapsed - task.estimated_minutes * 60)}`}>
+                <AlertTriangle size={12} />
+              </span>
+            )}
           </span>
         </div>
       </button>
 
       <div className="flex shrink-0 gap-1">
         {!done && !task.is_active && (
-          <IconButton onClick={() => startTask.mutate(task.id)} label="Start">
+          <IconButton onClick={() => startTask.mutate(task.id)} label="Start" variant="green">
             <Play size={14} />
           </IconButton>
         )}
         {!done && task.is_active && (
-          <IconButton onClick={() => pauseTask.mutate(task.id)} label="Pause">
+          <IconButton onClick={() => pauseTask.mutate(task.id)} label="Pause" variant="peach">
             <Pause size={14} />
           </IconButton>
         )}
-        <IconButton onClick={() => deleteTask.mutate(task.id)} label="Delete">
+        <IconButton onClick={() => deleteTask.mutate(task.id)} label="Delete" variant="red">
           <Trash2 size={14} />
         </IconButton>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
-function IconButton({ children, onClick, label }: { children: React.ReactNode; onClick: () => void; label: string }) {
+const ICON_BUTTON_VARIANTS = {
+  neutral: 'text-subtext0 hover:bg-surface0 hover:text-text',
+  green: 'text-green hover:bg-green/10',
+  peach: 'text-peach hover:bg-peach/10',
+  red: 'text-red hover:bg-red/10',
+} as const
+
+function IconButton({
+  children,
+  onClick,
+  label,
+  variant = 'neutral',
+}: {
+  children: React.ReactNode
+  onClick: () => void
+  label: string
+  variant?: keyof typeof ICON_BUTTON_VARIANTS
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       title={label}
       aria-label={label}
-      className="flex h-8 w-8 items-center justify-center rounded-lg text-subtext0 hover:bg-surface0 hover:text-text"
+      className={`flex h-8 w-8 items-center justify-center rounded-lg ${ICON_BUTTON_VARIANTS[variant]}`}
     >
       {children}
     </button>

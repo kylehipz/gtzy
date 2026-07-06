@@ -14,15 +14,18 @@ type StatsStore struct {
 }
 
 // Range computes aggregate analytics for tasks scheduled in [from, to]
-// (inclusive, YYYY-MM-DD).
-func (s *StatsStore) Range(from, to string) (models.Stats, error) {
+// (inclusive, YYYY-MM-DD). An empty categoryID applies no category filter.
+func (s *StatsStore) Range(from, to, categoryID string) (models.Stats, error) {
 	var stats models.Stats
 
-	rows, err := s.DB.Query(
-		`SELECT scheduled_date, status, estimated_minutes, actual_seconds
-		 FROM tasks WHERE scheduled_date >= ? AND scheduled_date <= ?`,
-		from, to,
-	)
+	q := `SELECT scheduled_date, status, estimated_minutes, actual_seconds
+		 FROM tasks WHERE scheduled_date >= ? AND scheduled_date <= ?`
+	args := []any{from, to}
+	if categoryID != "" {
+		q += ` AND category_id = ?`
+		args = append(args, categoryID)
+	}
+	rows, err := s.DB.Query(q, args...)
 	if err != nil {
 		return stats, err
 	}
@@ -80,6 +83,7 @@ func (s *StatsStore) Range(from, to string) (models.Stats, error) {
 		agg := perDay[d]
 		stats.EstVsActualPerDay = append(stats.EstVsActualPerDay, models.EstVsActualDay{
 			Date: d, EstimatedMinutes: agg.estMinutes, ActualSeconds: agg.actualSeconds,
+			Total: agg.total, Done: agg.done,
 		})
 		if agg.total > 0 {
 			completionSum += float64(agg.done) / float64(agg.total)
@@ -90,14 +94,16 @@ func (s *StatsStore) Range(from, to string) (models.Stats, error) {
 		stats.AvgDailyCompletion = completionSum / float64(completionDays)
 	}
 
-	catRows, err := s.DB.Query(
-		`SELECT t.category_id, COALESCE(c.name, 'Uncategorized'), COALESCE(SUM(t.actual_seconds), 0)
+	catQ := `SELECT t.category_id, COALESCE(c.name, 'Uncategorized'), COALESCE(SUM(t.actual_seconds), 0)
 		 FROM tasks t LEFT JOIN categories c ON c.id = t.category_id
-		 WHERE t.scheduled_date >= ? AND t.scheduled_date <= ?
-		 GROUP BY t.category_id, c.name
-		 ORDER BY SUM(t.actual_seconds) DESC`,
-		from, to,
-	)
+		 WHERE t.scheduled_date >= ? AND t.scheduled_date <= ?`
+	catArgs := []any{from, to}
+	if categoryID != "" {
+		catQ += ` AND t.category_id = ?`
+		catArgs = append(catArgs, categoryID)
+	}
+	catQ += ` GROUP BY t.category_id, c.name ORDER BY SUM(t.actual_seconds) DESC`
+	catRows, err := s.DB.Query(catQ, catArgs...)
 	if err != nil {
 		return stats, err
 	}

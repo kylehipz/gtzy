@@ -188,10 +188,13 @@ export function useDeleteRecurrence() {
   })
 }
 
-export function useMonth(year: number, month: number) {
+export function useMonth(year: number, month: number, categoryId?: string) {
   return useQuery({
-    queryKey: ['calendar', 'month', year, month],
-    queryFn: () => api.get<CalendarDay[]>(`/calendar/month?year=${year}&month=${month}`),
+    queryKey: ['calendar', 'month', year, month, categoryId],
+    queryFn: () =>
+      api.get<CalendarDay[]>(
+        `/calendar/month?year=${year}&month=${month}${categoryId ? `&category_id=${categoryId}` : ''}`,
+      ),
   })
 }
 
@@ -231,10 +234,14 @@ export function useDeleteJournal() {
   })
 }
 
-export function useStats(from?: string, to?: string) {
-  const qs = new URLSearchParams({ ...(from && { from }), ...(to && { to }) }).toString()
+export function useStats(from?: string, to?: string, categoryId?: string) {
+  const qs = new URLSearchParams({
+    ...(from && { from }),
+    ...(to && { to }),
+    ...(categoryId && { category_id: categoryId }),
+  }).toString()
   return useQuery({
-    queryKey: ['stats', from, to],
+    queryKey: ['stats', from, to, categoryId],
     queryFn: () => api.get<Stats>(`/stats${qs ? `?${qs}` : ''}`),
   })
 }

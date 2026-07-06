@@ -15,7 +15,7 @@ type CalendarStore struct {
 
 // Month returns per-day aggregates for every day in the given year/month,
 // materializing recurrence instances for each visible day first.
-func (s *CalendarStore) Month(year, month int) ([]models.CalendarDay, error) {
+func (s *CalendarStore) Month(year, month int, categoryID string) ([]models.CalendarDay, error) {
 	first := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
 	daysInMonth := first.AddDate(0, 1, -1).Day()
 	today := TodayLocal()
@@ -29,10 +29,14 @@ func (s *CalendarStore) Month(year, month int) ([]models.CalendarDay, error) {
 		}
 
 		var total, done int
-		if err := s.DB.QueryRow(
-			`SELECT COUNT(*), COALESCE(SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END), 0)
-			 FROM tasks WHERE scheduled_date = ?`, date,
-		).Scan(&total, &done); err != nil {
+		query := `SELECT COUNT(*), COALESCE(SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END), 0)
+			 FROM tasks WHERE scheduled_date = ?`
+		args := []any{date}
+		if categoryID != "" {
+			query += ` AND category_id = ?`
+			args = append(args, categoryID)
+		}
+		if err := s.DB.QueryRow(query, args...).Scan(&total, &done); err != nil {
 			return nil, err
 		}
 
@@ -43,7 +47,7 @@ func (s *CalendarStore) Month(year, month int) ([]models.CalendarDay, error) {
 			switch {
 			case done == total:
 				state = "complete"
-			case date < today:
+			case date <= today:
 				state = "missed"
 			default:
 				state = "partial"

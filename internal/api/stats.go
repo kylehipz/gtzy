@@ -15,13 +15,14 @@ func (s *Server) registerStatsRoutes(r chi.Router) {
 		q := r.URL.Query()
 		from := q.Get("from")
 		to := q.Get("to")
+		categoryID := q.Get("category_id")
 		if from == "" {
 			from = "0000-01-01"
 		}
 		if to == "" {
 			to = "9999-12-31"
 		}
-		stats, err := ss.Range(from, to)
+		stats, err := ss.Range(from, to, categoryID)
 		if err != nil {
 			writeErr(w, http.StatusInternalServerError, err.Error())
 			return

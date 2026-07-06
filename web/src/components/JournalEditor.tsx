@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Save, Trash2 } from 'lucide-react'
+import { Save } from 'lucide-react'
 import type { JournalEntry } from '../lib/types'
-import { useCreateJournal, useDeleteJournal, useUpdateJournal } from '../lib/queries'
+import { useCreateJournal, useUpdateJournal } from '../lib/queries'
 
 const MOODS = ['great', 'good', 'ok', 'bad'] as const
 
@@ -14,7 +14,6 @@ export function JournalEditor({ date, entry, onSaved }: { date: string; entry: J
 
   const createJournal = useCreateJournal()
   const updateJournal = useUpdateJournal()
-  const deleteJournal = useDeleteJournal()
 
   async function handleSave() {
     if (entry) {
@@ -74,15 +73,6 @@ export function JournalEditor({ date, entry, onSaved }: { date: string; entry: J
       )}
 
       <div className="flex justify-end gap-2">
-        {entry && (
-          <button
-            type="button"
-            onClick={() => deleteJournal.mutate(entry.id)}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-red hover:bg-red/10"
-          >
-            <Trash2 size={14} /> Delete
-          </button>
-        )}
         <button
           type="button"
           onClick={handleSave}

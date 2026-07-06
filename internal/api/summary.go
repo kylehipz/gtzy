@@ -61,7 +61,7 @@ func (s *Server) registerSummaryRoutes(r chi.Router) {
 			return
 		}
 
-		periodStats, err := stats.Range(from, to)
+		periodStats, err := stats.Range(from, to, "")
 		if err != nil {
 			writeErr(w, http.StatusInternalServerError, err.Error())
 			return
