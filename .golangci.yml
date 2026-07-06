@@ -1,0 +1,12 @@
+version: "2"
+linters:
+  default: standard
+  enable:
+    - unused
+    - unconvert
+    - misspell
+  exclusions:
+    rules:
+      # Deferred Close()/Parse() on read paths and cleanup: not actionable here.
+      - linters: [errcheck]
+        text: "Error return value of .*(Close|Parse). is not checked"
