@@ -18,9 +18,8 @@ func buildSummaryPrompt(periodType, periodKey string, stats models.Stats, tasks 
 	b.WriteString("Tasks:\n")
 	for _, t := range tasks {
 		status := "missed"
-		if t.Status == "done" {
-			status = "done"
-		} else if t.Status == "todo" || t.Status == "paused" || t.Status == "in_progress" {
+		switch t.Status {
+		case "done", "todo", "paused", "in_progress":
 			status = t.Status
 		}
 		fmt.Fprintf(&b, "- [%s] %s (priority: %s, est: %dm, actual: %ds)\n", status, t.Title, t.Priority, t.EstimatedMinutes, t.ActualSeconds)

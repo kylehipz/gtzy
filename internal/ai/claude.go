@@ -48,7 +48,7 @@ func (c *Client) Generate(periodType, periodKey, prompt string) (string, error) 
 	}
 
 	msg, err := c.client.Messages.New(context.Background(), anthropic.MessageNewParams{
-		Model:     anthropic.Model(c.model),
+		Model:     c.model,
 		MaxTokens: 4096,
 		Thinking:  anthropic.ThinkingConfigParamUnion{OfAdaptive: &anthropic.ThinkingConfigAdaptiveParam{}},
 		Messages: []anthropic.MessageParam{
