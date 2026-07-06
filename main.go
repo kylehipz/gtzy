@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"gtzy/internal/api"
 	"gtzy/internal/cli"
 	"gtzy/internal/db"
+	"gtzy/web"
 )
 
 func main() {
@@ -27,10 +29,10 @@ func main() {
 }
 
 func runServe(args []string) int {
-	fs := flag.NewFlagSet("serve", flag.ExitOnError)
-	port := fs.Int("port", 8420, "port to listen on")
-	dbPath := fs.String("db", "", "path to sqlite database file")
-	fs.Parse(args)
+	flagSet := flag.NewFlagSet("serve", flag.ExitOnError)
+	port := flagSet.Int("port", 8420, "port to listen on")
+	dbPath := flagSet.String("db", "", "path to sqlite database file")
+	flagSet.Parse(args)
 
 	path := *dbPath
 	if path == "" {
@@ -50,7 +52,7 @@ func runServe(args []string) int {
 	defer conn.Close()
 
 	server := &api.Server{DB: conn, AI: ai.New()}
-	handler := api.NewRouter(server, nil)
+	handler := api.NewRouter(server, spaFS())
 
 	addr := fmt.Sprintf(":%d", *port)
 	log.Printf("gtzy listening on %s (db: %s)", addr, path)
@@ -59,4 +61,18 @@ func runServe(args []string) int {
 		return 1
 	}
 	return 0
+}
+
+// spaFS returns the embedded frontend build, or nil if it hasn't been built
+// yet (dist/ contains only the placeholder .gitkeep), in which case the
+// server runs API-only.
+func spaFS() fs.FS {
+	sub, err := fs.Sub(web.DistFS, "dist")
+	if err != nil {
+		return nil
+	}
+	if _, err := fs.Stat(sub, "index.html"); err != nil {
+		return nil
+	}
+	return sub
 }
