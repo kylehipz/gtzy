@@ -1,0 +1,7 @@
+gtzy
+/web/node_modules/
+/web/dist/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
