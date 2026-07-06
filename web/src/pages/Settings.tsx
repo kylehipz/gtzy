@@ -1,7 +1,10 @@
 import { useState } from 'react'
-import { Pause, Play, Plus, Trash2 } from 'lucide-react'
+import { Pause, Play, Plus, Repeat, Trash2 } from 'lucide-react'
 import { ThemeSwitcher } from '../components/ThemeSwitcher'
 import { ColorSwatch } from '../components/ColorSwatch'
+import { CategoryBadge } from '../components/CategoryBadge'
+import { PriorityBadge } from '../components/PriorityBadge'
+import { IconButton } from '../components/TaskCard'
 import { Modal } from '../components/Modal'
 import { ACCENTS } from '../theme/ThemeProvider'
 import {
@@ -32,6 +35,7 @@ function repeatSummary(r: { freq: string; interval: number; days_of_week: string
 
 export function Settings() {
   const { data: categories = [] } = useCategories()
+  const categoryById = new Map(categories.map((c) => [c.id, c]))
   const createCategory = useCreateCategory()
   const updateCategory = useUpdateCategory()
   const deleteCategory = useDeleteCategory()
@@ -72,14 +76,15 @@ export function Settings() {
                   <ColorSwatch
                     key={a}
                     color={a}
+                    size="md"
                     selected={c.color === a}
                     onClick={() => updateCategory.mutate({ id: c.id, patch: { color: a } })}
                   />
                 ))}
               </div>
-              <button type="button" onClick={() => deleteCategory.mutate(c.id)} className="text-subtext0 hover:text-red">
+              <IconButton onClick={() => deleteCategory.mutate(c.id)} label="Delete category" variant="red">
                 <Trash2 size={14} />
-              </button>
+              </IconButton>
             </div>
           ))}
         </div>
@@ -124,34 +129,48 @@ export function Settings() {
           <p className="text-sm text-subtext0">No recurring rules yet — create one from the New Task form.</p>
         ) : (
           <div className="flex flex-col gap-2">
-            {recurrences.map((r) => (
-              <div key={r.id} className="flex items-center justify-between rounded-lg border border-surface0 bg-mantle p-2.5">
-                <div>
-                  <p className={`text-sm font-medium text-text ${!r.active ? 'opacity-50' : ''}`}>{r.title}</p>
-                  <p className="text-xs text-subtext0">{repeatSummary(r)}</p>
+            {recurrences.map((r) => {
+              const category = r.category_id ? categoryById.get(r.category_id) : null
+              const tint = category
+                ? {
+                    backgroundColor: `color-mix(in oklab, var(--ctp-${category.color}) 12%, var(--ctp-mantle))`,
+                    borderColor: `color-mix(in oklab, var(--ctp-${category.color}) 35%, var(--ctp-surface0))`,
+                  }
+                : undefined
+              return (
+              <div
+                key={r.id}
+                style={tint}
+                className={`flex items-center gap-3 rounded-xl border p-3 ${category ? '' : 'border-surface0 bg-mantle'}`}
+              >
+                <Repeat size={16} className="shrink-0 text-overlay0" />
+                <div className="min-w-0 flex-1">
+                  <p className={`truncate text-sm font-medium text-text ${!r.active ? 'opacity-50' : ''}`}>{r.title}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    <PriorityBadge priority={r.priority} />
+                    <CategoryBadge category={category} />
+                    <span className="text-xs text-subtext0">{repeatSummary(r)}</span>
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <button
-                    type="button"
-                    title={r.active ? 'Pause' : 'Resume'}
+                <div className="flex shrink-0 gap-1">
+                  <IconButton
                     onClick={() => updateRecurrence.mutate({ id: r.id, patch: { active: !r.active } })}
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                      r.active ? 'text-peach hover:bg-peach/10' : 'text-green hover:bg-green/10'
-                    }`}
+                    label={r.active ? 'Pause' : 'Resume'}
+                    variant={r.active ? 'peach' : 'green'}
                   >
                     {r.active ? <Pause size={14} /> : <Play size={14} />}
-                  </button>
-                  <button
-                    type="button"
-                    title="Delete rule + future instances"
+                  </IconButton>
+                  <IconButton
                     onClick={() => deleteRecurrence.mutate({ id: r.id, hard: true })}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-red hover:bg-red/10"
+                    label="Delete rule + future instances"
+                    variant="red"
                   >
                     <Trash2 size={14} />
-                  </button>
+                  </IconButton>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </Section>

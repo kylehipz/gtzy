@@ -4,8 +4,8 @@ import { CalendarDays, LayoutDashboard, ListTodo, NotebookPen, Settings } from '
 const LINKS = [
   { to: '/', label: 'Today', icon: ListTodo },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays },
-  { to: '/journal', label: 'Journal', icon: NotebookPen },
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/journal', label: 'Journal', icon: NotebookPen },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 

@@ -264,3 +264,15 @@ export function useGenerateSummary() {
       qc.invalidateQueries({ queryKey: ['summary', vars.period, vars.key] }),
   })
 }
+
+export function useGenerateJournalSummary() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ from, to }: { from: string; to: string }) =>
+      api.post<{ enabled: boolean; cached: boolean; summary: AISummary }>(
+        `/summary/journal?from=${from}&to=${to}`,
+      ),
+    onSuccess: (_data, vars) =>
+      qc.invalidateQueries({ queryKey: ['summary', 'journal', `${vars.from}..${vars.to}`] }),
+  })
+}

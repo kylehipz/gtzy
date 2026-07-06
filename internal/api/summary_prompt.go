@@ -42,6 +42,26 @@ func buildSummaryPrompt(periodType, periodKey string, stats models.Stats, tasks 
 	return b.String()
 }
 
+func buildJournalSummaryPrompt(from, to string, entries []models.JournalEntry) string {
+	var b strings.Builder
+
+	fmt.Fprintf(&b, "You are a reflective journaling coach analyzing journal entries from %s to %s.\n\n", from, to)
+
+	b.WriteString("Journal entries:\n")
+	for _, e := range entries {
+		mood := "n/a"
+		if e.Mood != nil {
+			mood = *e.Mood
+		}
+		fmt.Fprintf(&b, "- %s (mood: %s): %s\n", e.Date, mood, truncate(e.Content, 500))
+	}
+
+	b.WriteString("\nWrite a concise, reflective markdown summary covering: recurring themes, mood patterns over the range, " +
+		"and 2-3 gentle observations or suggestions. Keep it warm but direct, under 400 words.")
+
+	return b.String()
+}
+
 func truncate(s string, n int) string {
 	if len(s) <= n {
 		return s

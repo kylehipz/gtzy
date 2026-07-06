@@ -92,6 +92,45 @@ func (s *Server) registerSummaryRoutes(r chi.Router) {
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"enabled": true, "cached": false, "summary": sum})
 	})
+
+	r.Post("/summary/journal", func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		from, to := q.Get("from"), q.Get("to")
+		if _, err := time.Parse("2006-01-02", from); err != nil {
+			writeErr(w, http.StatusBadRequest, "invalid from date, want YYYY-MM-DD")
+			return
+		}
+		if _, err := time.Parse("2006-01-02", to); err != nil {
+			writeErr(w, http.StatusBadRequest, "invalid to date, want YYYY-MM-DD")
+			return
+		}
+		if s.AI == nil || !s.AI.Enabled() {
+			writeErr(w, http.StatusBadRequest, "AI summaries are disabled: no API key configured")
+			return
+		}
+
+		entries, err := journal.List("", from, to)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		prompt := buildJournalSummaryPrompt(from, to, entries)
+
+		key := from + ".." + to
+		content, err := s.AI.Generate("journal", key, prompt)
+		if err != nil {
+			writeErr(w, http.StatusBadGateway, err.Error())
+			return
+		}
+
+		sum, err := sums.Upsert("journal", key, content, s.AI.Model())
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"enabled": true, "cached": false, "summary": sum})
+	})
 }
 
 func periodRange(periodType, periodKey string) (from, to string, err error) {

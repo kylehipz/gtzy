@@ -1,16 +1,23 @@
 import { useState } from 'react'
 import { NotebookPen } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 import { JournalEditor } from '../components/JournalEditor'
 import { EmptyState } from '../components/EmptyState'
-import { useDeleteJournal, useJournal } from '../lib/queries'
-import { todayLocal } from '../lib/time'
+import { useDeleteJournal, useGenerateJournalSummary, useJournal, useSummary } from '../lib/queries'
+import { addDaysLocal, todayLocal } from '../lib/time'
 import type { JournalEntry } from '../lib/types'
 
 export function Journal() {
   const [date, setDate] = useState(todayLocal())
   const [editing, setEditing] = useState<JournalEntry | null>(null)
-  const { data: allEntries = [] } = useJournal()
+  const [from, setFrom] = useState(addDaysLocal(todayLocal(), -6))
+  const [to, setTo] = useState(todayLocal())
+  const { data: allEntries = [] } = useJournal({ from, to })
   const deleteJournal = useDeleteJournal()
+
+  const summaryKey = `${from}..${to}`
+  const { data: summaryData } = useSummary('journal', summaryKey)
+  const generateJournalSummary = useGenerateJournalSummary()
 
   return (
     <div className="flex flex-col gap-4 p-6">
@@ -37,6 +44,54 @@ export function Journal() {
         entry={editing}
         onSaved={() => setEditing(null)}
       />
+
+      <div className="flex flex-col gap-3 rounded-xl border border-surface0 bg-mantle p-4">
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-sm font-medium text-text">AI Summary</p>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 text-xs text-subtext0">
+              From
+              <input
+                type="date"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                className="rounded-lg border border-surface0 bg-base px-2 py-1 text-sm text-text"
+              />
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-subtext0">
+              To
+              <input
+                type="date"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                className="rounded-lg border border-surface0 bg-base px-2 py-1 text-sm text-text"
+              />
+            </label>
+          </div>
+        </div>
+
+        {!summaryData?.enabled ? (
+          <p className="text-sm text-subtext0">Add ANTHROPIC_API_KEY to enable AI-generated journal summaries.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {summaryData.summary ? (
+              <div className="prose prose-invert max-w-none text-sm text-text">
+                <ReactMarkdown>{summaryData.summary.content}</ReactMarkdown>
+              </div>
+            ) : (
+              <p className="text-sm text-subtext0">No summary generated yet for this range.</p>
+            )}
+            <button
+              type="button"
+              onClick={() => generateJournalSummary.mutate({ from, to })}
+              disabled={generateJournalSummary.isPending}
+              className="self-start rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-base hover:opacity-90 disabled:opacity-50"
+            >
+              {generateJournalSummary.isPending ? 'Generating…' : summaryData.summary ? 'Regenerate' : 'Generate summary'}
+            </button>
+          </div>
+        )}
+      </div>
 
       <div>
         <p className="mb-2 text-xs font-medium uppercase tracking-wide text-subtext0">All entries</p>

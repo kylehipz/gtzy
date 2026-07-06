@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, Check, Clock, GripVertical, Pause, Play, Repeat, Timer, Trash2 } from 'lucide-react'
-import type { DragControls } from 'framer-motion'
+import { AlertTriangle, Check, Clock, Pause, Play, Repeat, Timer, Trash2 } from 'lucide-react'
 import type { Category, Task } from '../lib/types'
 import { elapsedSecondsLive, fmtDuration } from '../lib/time'
 import { PriorityBadge } from './PriorityBadge'
@@ -11,12 +10,10 @@ export function TaskCard({
   task,
   category,
   onEdit,
-  dragControls,
 }: {
   task: Task
   category: Category | null | undefined
   onEdit: () => void
-  dragControls?: DragControls
 }) {
   const startTask = useStartTask()
   const pauseTask = usePauseTask()
@@ -48,17 +45,6 @@ export function TaskCard({
         category ? '' : task.is_active ? 'border-accent/50 bg-accent/5' : 'border-surface0 bg-mantle'
       } ${task.is_active ? 'ring-1 ring-accent' : ''} ${done ? 'opacity-60' : ''}`}
     >
-      {dragControls && (
-        <button
-          type="button"
-          onPointerDown={(e) => dragControls.start(e)}
-          className="flex h-8 w-8 shrink-0 cursor-grab items-center justify-center text-subtext0 active:cursor-grabbing"
-          aria-label="Reorder"
-        >
-          <GripVertical size={14} />
-        </button>
-      )}
-
       <button
         type="button"
         onClick={() => (done ? undefined : completeTask.mutate(task.id))}
@@ -83,10 +69,12 @@ export function TaskCard({
               {task.scheduled_start}
             </span>
           )}
-          <span className={`flex items-center gap-1 font-mono text-xs ${overEstimate ? 'text-red' : 'text-subtext0'}`}>
+          <span className={`ml-2 flex items-center gap-1 text-xs ${overEstimate ? 'text-red' : 'text-subtext0'}`}>
             <Timer size={12} />
-            {fmtDuration(elapsed)}
-            {task.estimated_minutes > 0 && ` / ${fmtDuration(task.estimated_minutes * 60)}`}
+            <span className="font-mono">
+              {fmtDuration(elapsed)}
+              {task.estimated_minutes > 0 && ` / ${fmtDuration(task.estimated_minutes * 60)}`}
+            </span>
             {overEstimate && (
               <span title={`Over estimate by ${fmtDuration(elapsed - task.estimated_minutes * 60)}`}>
                 <AlertTriangle size={12} />
@@ -122,7 +110,7 @@ const ICON_BUTTON_VARIANTS = {
   red: 'text-red hover:bg-red/10',
 } as const
 
-function IconButton({
+export function IconButton({
   children,
   onClick,
   label,

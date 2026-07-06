@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ListTodo, Plus, Search } from 'lucide-react'
+import { GripVertical, ListTodo, Plus, Search } from 'lucide-react'
 import { Reorder, useDragControls } from 'framer-motion'
 import { FilterBar, type Filters } from '../components/FilterBar'
 import { TaskCard } from '../components/TaskCard'
@@ -116,7 +116,19 @@ function SortableTaskRow({
   const dragControls = useDragControls()
   return (
     <Reorder.Item as="div" value={task} dragListener={false} dragControls={dragControls}>
-      <TaskCard task={task} category={category} onEdit={onEdit} dragControls={dragControls} />
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onPointerDown={(e) => dragControls.start(e)}
+          className="flex h-8 w-8 shrink-0 cursor-grab items-center justify-center text-subtext0 active:cursor-grabbing"
+          aria-label="Reorder"
+        >
+          <GripVertical size={14} />
+        </button>
+        <div className="min-w-0 flex-1">
+          <TaskCard task={task} category={category} onEdit={onEdit} />
+        </div>
+      </div>
     </Reorder.Item>
   )
 }
