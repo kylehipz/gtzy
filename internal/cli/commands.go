@@ -2,11 +2,12 @@ package cli
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/spf13/cobra"
 
 	"gtzy/internal/models"
 )
@@ -15,7 +16,18 @@ func today() string { return time.Now().Format("2006-01-02") }
 
 // --- gtzy next ---
 
-func cmdNext(args []string) error {
+func newNextCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "next",
+		Short: "Advance to the next eligible task",
+		Long:  "Pauses whatever task is currently running (if any) and starts the next eligible task, chosen by priority and schedule. Prints \"no eligible task — idle\" if nothing qualifies.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runNext()
+		},
+	}
+}
+
+func runNext() error {
 	body, err := httpPost("/api/timer/next", nil)
 	if err != nil {
 		return err
@@ -36,13 +48,27 @@ func cmdNext(args []string) error {
 
 // --- gtzy start <id> ---
 
-func cmdStart(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("usage: gtzy start <id>")
+func newStartCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "start <id>",
+		Short: "Start a task by id",
+		Long:  "Starts the given task, pausing whatever else is currently running. The id is printed by `gtzy list`.",
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return fmt.Errorf("usage: gtzy start <id>")
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runStart(args[0])
+		},
 	}
-	id, err := strconv.ParseInt(args[0], 10, 64)
+}
+
+func runStart(idArg string) error {
+	id, err := strconv.ParseInt(idArg, 10, 64)
 	if err != nil {
-		return fmt.Errorf("invalid id %q", args[0])
+		return fmt.Errorf("invalid id %q", idArg)
 	}
 	body, err := httpPost(fmt.Sprintf("/api/tasks/%d/start", id), nil)
 	if err != nil {
@@ -58,7 +84,18 @@ func cmdStart(args []string) error {
 
 // --- gtzy pause ---
 
-func cmdPause(args []string) error {
+func newPauseCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "pause",
+		Short: "Pause the currently running task",
+		Long:  "Pauses whatever task is currently running. Prints \"nothing was running\" if the timer was already idle.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runPause()
+		},
+	}
+}
+
+func runPause() error {
 	body, err := httpPost("/api/timer/pause", nil)
 	if err != nil {
 		return err
@@ -79,12 +116,28 @@ func cmdPause(args []string) error {
 
 // --- gtzy complete [<id>] ---
 
-func cmdComplete(args []string) error {
+func newCompleteCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "complete [id]",
+		Short: "Complete the current task, or a given task by id",
+		Long:  "Marks a task done. With no id, completes whatever task is currently running (error if nothing is running). With an id, completes that task regardless of its running state.",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			idArg := ""
+			if len(args) == 1 {
+				idArg = args[0]
+			}
+			return runComplete(idArg)
+		},
+	}
+}
+
+func runComplete(idArg string) error {
 	var id int64
-	if len(args) >= 1 {
-		parsed, err := strconv.ParseInt(args[0], 10, 64)
+	if idArg != "" {
+		parsed, err := strconv.ParseInt(idArg, 10, 64)
 		if err != nil {
-			return fmt.Errorf("invalid id %q", args[0])
+			return fmt.Errorf("invalid id %q", idArg)
 		}
 		id = parsed
 	} else {
@@ -118,7 +171,18 @@ func cmdComplete(args []string) error {
 
 // --- gtzy current ---
 
-func cmdCurrent(args []string) error {
+func newCurrentCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "current",
+		Short: "Show the currently running task",
+		Long:  "Prints the running task's title, elapsed time, and estimate. Prints \"idle — no task running\" if nothing is running.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runCurrent()
+		},
+	}
+}
+
+func runCurrent() error {
 	body, err := httpGet("/api/timer/current")
 	if err != nil {
 		return err
@@ -144,26 +208,44 @@ func cmdCurrent(args []string) error {
 
 // --- gtzy add "<title>" [--priority] [--category] [--est] [--date] [--at] [--repeat] ---
 
-func cmdAdd(args []string) error {
-	if len(args) < 1 || strings.HasPrefix(args[0], "-") {
-		return fmt.Errorf(`usage: gtzy add "<title>" [--priority p] [--category name] [--est minutes] [--date YYYY-MM-DD] [--at HH:MM] [--repeat daily|weekly:1,3,5|monthly:15]`)
-	}
-	title := args[0]
+func newAddCmd() *cobra.Command {
+	var priority, category, date, at, repeat string
+	var est int
+	cmd := &cobra.Command{
+		Use:   `add "<title>" [flags]`,
+		Short: "Create a task, or a recurring rule",
+		Long: `Creates a one-off task, or — if --repeat is given — a recurring rule that
+materializes into daily task instances.
 
-	fs := flag.NewFlagSet("add", flag.ContinueOnError)
-	priority := fs.String("priority", "medium", "")
-	category := fs.String("category", "", "")
-	est := fs.Int("est", 0, "")
-	date := fs.String("date", today(), "")
-	at := fs.String("at", "", "")
-	repeat := fs.String("repeat", "", "")
-	if err := fs.Parse(args[1:]); err != nil {
-		return err
+Examples:
+  gtzy add "Write report"
+  gtzy add "Standup" --at 09:00 --est 15
+  gtzy add "Water plants" --repeat daily
+  gtzy add "Gym" --repeat weekly:1,3,5
+  gtzy add "Pay rent" --repeat monthly:1`,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return fmt.Errorf(`usage: gtzy add "<title>" [--priority p] [--category name] [--est minutes] [--date YYYY-MM-DD] [--at HH:MM] [--repeat daily|weekly:1,3,5|monthly:15]`)
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runAdd(args[0], priority, category, est, date, at, repeat)
+		},
 	}
+	cmd.Flags().StringVar(&priority, "priority", "medium", `task priority: "low", "medium", or "high"`)
+	cmd.Flags().StringVar(&category, "category", "", "category name (must already exist)")
+	cmd.Flags().IntVar(&est, "est", 0, "estimated duration in minutes")
+	cmd.Flags().StringVar(&date, "date", today(), "scheduled date, YYYY-MM-DD (used as the recurrence's start date when --repeat is set)")
+	cmd.Flags().StringVar(&at, "at", "", "scheduled start time, HH:MM")
+	cmd.Flags().StringVar(&repeat, "repeat", "", `recurrence: "daily", "weekly:1,3,5" (0=Sun..6=Sat), or "monthly:15"`)
+	return cmd
+}
 
+func runAdd(title, priority, category string, est int, date, at, repeat string) error {
 	var categoryID *int64
-	if *category != "" {
-		id, err := lookupCategoryID(*category)
+	if category != "" {
+		id, err := lookupCategoryID(category)
 		if err != nil {
 			return err
 		}
@@ -171,19 +253,19 @@ func cmdAdd(args []string) error {
 	}
 
 	var scheduledStart *string
-	if *at != "" {
-		scheduledStart = at
+	if at != "" {
+		scheduledStart = &at
 	}
 
-	if *repeat != "" {
-		freq, interval, daysOfWeek, dayOfMonth, err := parseRepeat(*repeat)
+	if repeat != "" {
+		freq, interval, daysOfWeek, dayOfMonth, err := parseRepeat(repeat)
 		if err != nil {
 			return err
 		}
 		payload := map[string]any{
-			"title": title, "priority": *priority, "estimated_minutes": *est,
+			"title": title, "priority": priority, "estimated_minutes": est,
 			"scheduled_start": scheduledStart, "freq": freq, "interval": interval,
-			"days_of_week": daysOfWeek, "day_of_month": dayOfMonth, "start_date": *date,
+			"days_of_week": daysOfWeek, "day_of_month": dayOfMonth, "start_date": date,
 		}
 		if categoryID != nil {
 			payload["category_id"] = *categoryID
@@ -191,13 +273,13 @@ func cmdAdd(args []string) error {
 		if _, err := httpPost("/api/recurrences", payload); err != nil {
 			return err
 		}
-		fmt.Printf("created recurring rule: %s (%s)\n", title, *repeat)
+		fmt.Printf("created recurring rule: %s (%s)\n", title, repeat)
 		return nil
 	}
 
 	payload := map[string]any{
-		"title": title, "priority": *priority, "estimated_minutes": *est,
-		"scheduled_date": *date, "scheduled_start": scheduledStart,
+		"title": title, "priority": priority, "estimated_minutes": est,
+		"scheduled_date": date, "scheduled_start": scheduledStart,
 	}
 	if categoryID != nil {
 		payload["category_id"] = *categoryID
@@ -259,17 +341,29 @@ func lookupCategoryID(name string) (int64, error) {
 
 // --- gtzy list [--today] [--wofi] [--json] ---
 
-func cmdList(args []string) error {
-	fs := flag.NewFlagSet("list", flag.ContinueOnError)
-	todayOnly := fs.Bool("today", false, "")
-	wofi := fs.Bool("wofi", false, "")
-	asJSON := fs.Bool("json", false, "")
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
+func newListCmd() *cobra.Command {
+	var todayOnly, wofi, asJSON bool
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List tasks",
+		Long: `Lists tasks. By default prints a human-readable table of all tasks.
 
+  --today  only tasks scheduled for today
+  --wofi   tab-separated "<id>\t<title> · <elapsed>" lines for piping into wofi --dmenu (done tasks excluded)
+  --json   raw JSON response from the server, for scripting`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runList(todayOnly, wofi, asJSON)
+		},
+	}
+	cmd.Flags().BoolVar(&todayOnly, "today", false, "only tasks scheduled for today")
+	cmd.Flags().BoolVar(&wofi, "wofi", false, `wofi-friendly output: "<id>\t<title> · <elapsed>"`)
+	cmd.Flags().BoolVar(&asJSON, "json", false, "print raw JSON instead of a table")
+	return cmd
+}
+
+func runList(todayOnly, wofi, asJSON bool) error {
 	path := "/api/tasks"
-	if *todayOnly {
+	if todayOnly {
 		path += "?date=" + today()
 	}
 	body, err := httpGet(path)
@@ -277,7 +371,7 @@ func cmdList(args []string) error {
 		return err
 	}
 
-	if *asJSON {
+	if asJSON {
 		fmt.Println(string(body))
 		return nil
 	}
@@ -287,7 +381,7 @@ func cmdList(args []string) error {
 		return err
 	}
 
-	if *wofi {
+	if wofi {
 		for _, t := range tasks {
 			if t.Status == "done" {
 				continue
@@ -318,16 +412,32 @@ type waybarOutput struct {
 	Percentage int    `json:"percentage"`
 }
 
-func cmdWaybar(args []string) error {
+func newWaybarCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "waybar",
+		Short: "Print a Waybar custom-module JSON status line",
+		Long: `Prints a single-line JSON object {"text","tooltip","class","percentage"}
+describing the currently running (or most recently paused) task, suitable
+for a Waybar "custom/gtzy" module's "exec". Always exits 0 and always prints
+valid JSON, even if the gtzy server is unreachable or something else goes
+wrong internally — this command must never break the Waybar bar.`,
+		DisableFlagParsing: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			runWaybar()
+			return nil
+		},
+	}
+}
+
+func runWaybar() {
 	out := computeWaybarOutput()
 	enc, err := json.Marshal(out)
 	if err != nil {
 		// Never break the waybar module: print a safe idle fallback instead.
 		fmt.Println(`{"text":"  idle","tooltip":"gtzy: error building status","class":"idle","percentage":0}`)
-		return nil
+		return
 	}
 	fmt.Println(string(enc))
-	return nil
 }
 
 func computeWaybarOutput() waybarOutput {

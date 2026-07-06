@@ -20,6 +20,16 @@ For iterating on just the backend: `go build -o gtzy .` works fine without
 touching `web/` — the binary falls back to API-only mode if `web/dist` hasn't
 been built yet (a placeholder keeps the embed valid either way).
 
+## Install
+
+```sh
+make install
+```
+
+Builds the frontend and runs `go install .`, which puts the `gtzy` binary at
+`$(go env GOPATH)/bin/gtzy` (usually `~/go/bin`). Make sure that directory is
+on your `PATH` so `gtzy` is runnable from anywhere.
+
 ## Run
 
 ```sh
@@ -55,6 +65,9 @@ server (default `http://localhost:8420`, override with `GTZY_URL`):
 | `gtzy add "<title>" [--priority p] [--category name] [--est minutes] [--date YYYY-MM-DD] [--at HH:MM] [--repeat daily\|weekly:1,3,5\|monthly:15]` | create a task, or a recurring rule with `--repeat` |
 | `gtzy list [--today] [--wofi] [--json]` | list tasks |
 | `gtzy waybar` | print Waybar module JSON |
+
+Run `gtzy --help` or `gtzy <command> --help` for full usage and flag
+descriptions (the CLI is built on Cobra).
 
 ## AI growth summaries (optional)
 

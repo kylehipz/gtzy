@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io/fs"
 	"log"
@@ -13,54 +12,65 @@ import (
 	"gtzy/internal/cli"
 	"gtzy/internal/db"
 	"gtzy/web"
+
+	"github.com/spf13/cobra"
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: gtzy <serve|next|start|pause|complete|current|add|list|waybar> [args]")
+	root := cli.NewRootCommand()
+	root.AddCommand(newServeCmd())
+	if err := root.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
-
-	if os.Args[1] == "serve" {
-		os.Exit(runServe(os.Args[2:]))
-	}
-
-	os.Exit(cli.Run(os.Args[1:]))
 }
 
-func runServe(args []string) int {
-	flagSet := flag.NewFlagSet("serve", flag.ExitOnError)
-	port := flagSet.Int("port", 8420, "port to listen on")
-	dbPath := flagSet.String("db", "", "path to sqlite database file")
-	flagSet.Parse(args)
+func newServeCmd() *cobra.Command {
+	var port int
+	var dbPath string
+	cmd := &cobra.Command{
+		Use:   "serve",
+		Short: "Run the gtzy HTTP server and web UI",
+		Long: `Serves the gtzy REST API and, if the frontend has been built into web/dist,
+the embedded React single-page app, backed by a local SQLite database at
+--db (or $GTZY_DB, default ~/.local/share/gtzy/gtzy.db).
 
-	path := *dbPath
+Leave this running; every other gtzy subcommand talks to it over HTTP.`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runServe(port, dbPath)
+		},
+	}
+	cmd.Flags().IntVar(&port, "port", 8420, "port to listen on")
+	cmd.Flags().StringVar(&dbPath, "db", "", "path to sqlite database file (default: $GTZY_DB or ~/.local/share/gtzy/gtzy.db)")
+	return cmd
+}
+
+func runServe(port int, dbPath string) error {
+	path := dbPath
 	if path == "" {
 		p, err := db.DefaultPath()
 		if err != nil {
-			log.Println("resolve db path:", err)
-			return 1
+			return fmt.Errorf("resolve db path: %w", err)
 		}
 		path = p
 	}
 
 	conn, err := db.Open(path)
 	if err != nil {
-		log.Println("open db:", err)
-		return 1
+		return fmt.Errorf("open db: %w", err)
 	}
 	defer conn.Close()
 
 	server := &api.Server{DB: conn, AI: ai.New()}
 	handler := api.NewRouter(server, spaFS())
 
-	addr := fmt.Sprintf(":%d", *port)
+	addr := fmt.Sprintf(":%d", port)
 	log.Printf("gtzy listening on %s (db: %s)", addr, path)
 	if err := http.ListenAndServe(addr, handler); err != nil {
-		log.Println("server error:", err)
-		return 1
+		return fmt.Errorf("server error: %w", err)
 	}
-	return 0
+	return nil
 }
 
 // spaFS returns the embedded frontend build, or nil if it hasn't been built
