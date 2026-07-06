@@ -11,8 +11,8 @@ import (
 
 // Server holds shared dependencies for HTTP handlers.
 type Server struct {
-	DB  *sql.DB
-	AI  AISummarizer
+	DB *sql.DB
+	AI AISummarizer
 }
 
 // AISummarizer is the subset of internal/ai.Client used by the summary handlers.

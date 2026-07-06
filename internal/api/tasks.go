@@ -91,15 +91,15 @@ func (s *Server) registerTaskRoutes(r chi.Router) {
 			return
 		}
 		var body struct {
-			Title            *string  `json:"title"`
-			Notes            *string  `json:"notes"`
-			CategoryID       *int64   `json:"category_id"`
-			Priority         *string  `json:"priority"`
-			Status           *string  `json:"status"`
-			EstimatedMinutes *int     `json:"estimated_minutes"`
-			ScheduledDate    *string  `json:"scheduled_date"`
-			ScheduledStart   *string  `json:"scheduled_start"`
-			SortOrder        *int     `json:"sort_order"`
+			Title            *string `json:"title"`
+			Notes            *string `json:"notes"`
+			CategoryID       *int64  `json:"category_id"`
+			Priority         *string `json:"priority"`
+			Status           *string `json:"status"`
+			EstimatedMinutes *int    `json:"estimated_minutes"`
+			ScheduledDate    *string `json:"scheduled_date"`
+			ScheduledStart   *string `json:"scheduled_start"`
+			SortOrder        *int    `json:"sort_order"`
 		}
 		raw, err := readAll(r)
 		if err != nil {

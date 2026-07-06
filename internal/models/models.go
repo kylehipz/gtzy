@@ -11,22 +11,22 @@ type Category struct {
 // Recurrence is a template + rule from which concrete Task instances are
 // lazily materialized per day.
 type Recurrence struct {
-	ID                int64   `json:"id"`
-	Title             string  `json:"title"`
-	Notes             string  `json:"notes"`
-	CategoryID        *int64  `json:"category_id"`
-	Priority          string  `json:"priority"`
-	EstimatedMinutes  int     `json:"estimated_minutes"`
-	ScheduledStart    *string `json:"scheduled_start"`
-	Freq              string  `json:"freq"` // daily|weekly|monthly
-	Interval          int     `json:"interval"`
-	DaysOfWeek        string  `json:"days_of_week"`
-	DayOfMonth        *int    `json:"day_of_month"`
-	StartDate         string  `json:"start_date"`
-	EndDate           *string `json:"end_date"`
-	Active            bool    `json:"active"`
-	CreatedAt         string  `json:"created_at"`
-	UpdatedAt         string  `json:"updated_at"`
+	ID               int64   `json:"id"`
+	Title            string  `json:"title"`
+	Notes            string  `json:"notes"`
+	CategoryID       *int64  `json:"category_id"`
+	Priority         string  `json:"priority"`
+	EstimatedMinutes int     `json:"estimated_minutes"`
+	ScheduledStart   *string `json:"scheduled_start"`
+	Freq             string  `json:"freq"` // daily|weekly|monthly
+	Interval         int     `json:"interval"`
+	DaysOfWeek       string  `json:"days_of_week"`
+	DayOfMonth       *int    `json:"day_of_month"`
+	StartDate        string  `json:"start_date"`
+	EndDate          *string `json:"end_date"`
+	Active           bool    `json:"active"`
+	CreatedAt        string  `json:"created_at"`
+	UpdatedAt        string  `json:"updated_at"`
 }
 
 // Task is a single actionable item, optionally materialized from a Recurrence.
@@ -95,16 +95,16 @@ type CalendarDay struct {
 
 // Stats is the aggregate analytics payload for a date range.
 type Stats struct {
-	TasksCompleted        int                `json:"tasks_completed"`
-	TasksTotal             int                `json:"tasks_total"`
-	CompletionRate         float64            `json:"completion_rate"`
-	EstimatedMinutesTotal  int                `json:"estimated_minutes_total"`
-	ActualSecondsTotal     int64              `json:"actual_seconds_total"`
-	EstVsActualPerDay      []EstVsActualDay   `json:"est_vs_actual"`
-	TimeByCategory         []CategoryTime     `json:"time_by_category"`
-	CurrentStreak          int                `json:"current_streak"`
-	BusiestCategory        string             `json:"busiest_category"`
-	AvgDailyCompletion     float64            `json:"avg_daily_completion"`
+	TasksCompleted        int              `json:"tasks_completed"`
+	TasksTotal            int              `json:"tasks_total"`
+	CompletionRate        float64          `json:"completion_rate"`
+	EstimatedMinutesTotal int              `json:"estimated_minutes_total"`
+	ActualSecondsTotal    int64            `json:"actual_seconds_total"`
+	EstVsActualPerDay     []EstVsActualDay `json:"est_vs_actual"`
+	TimeByCategory        []CategoryTime   `json:"time_by_category"`
+	CurrentStreak         int              `json:"current_streak"`
+	BusiestCategory       string           `json:"busiest_category"`
+	AvgDailyCompletion    float64          `json:"avg_daily_completion"`
 }
 
 type EstVsActualDay struct {

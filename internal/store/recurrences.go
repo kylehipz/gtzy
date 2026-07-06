@@ -199,7 +199,7 @@ func (s *RecurrenceStore) EnsureInstancesForDate(date string) (int, error) {
 	}
 
 	rows, err := s.DB.Query(
-		`SELECT ` + recurCols + ` FROM recurrences
+		`SELECT `+recurCols+` FROM recurrences
 		 WHERE active = 1 AND start_date <= ? AND (end_date IS NULL OR end_date >= ?)`,
 		date, date,
 	)
