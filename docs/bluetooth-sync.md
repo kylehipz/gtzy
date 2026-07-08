@@ -27,6 +27,28 @@ Glucose Measurement + RACP indications → write the RACP "report stored records
 command → the meter streams one indication per record → we decode each per the
 spec (`internal/meter/decode.go`) → insert into `blood_sugar_readings`.
 
+### "But my phone app feels like the meter pushes to it!"
+
+It does — and that's not a contradiction. BLE keeps two things separate: *who
+starts the conversation* (the role) and *which way the data bytes travel*.
+
+When you press **save** on the meter, the meter does not dial out to your phone.
+It starts **advertising** — broadcasting "I'm here and connectable." Your phone,
+bonded and running the app in the background, hears that, **connects to the
+meter**, and **asks** for records newer than the last one it has (the RACP
+request). The meter answers, and the app shows its "reading received"
+notification. So:
+
+- **Who initiates + asks → the phone (the central).** That is what "pull" means.
+  The meter is passive; it can only advertise and answer questions.
+- **Which way the reading travels → meter → app**, delivered instantly over the
+  open connection as a BLE *indication*. That is the part that feels like a push.
+
+The "magic" is only that the phone auto-connects and auto-asks the instant the
+meter appears, so it all happens in under a second. gtzy plays the exact same
+central role — see [Automatic vs. on-demand](#automatic-vs-on-demand) for how
+that compares to the phone-app experience.
+
 ## Prerequisites
 
 - Linux with **BlueZ** running (this is the backend `tinygo.org/x/bluetooth`
@@ -85,6 +107,30 @@ or click **Sync meter** on the Blood Sugar tab in the web UI. Both hit
 Make sure the meter is awake and in range when you sync. The first sync imports
 all stored records; later syncs only ask for records newer than the highest
 sequence number already imported.
+
+### Automatic vs. on-demand
+
+Unlike your phone app — which auto-connects and syncs the instant you press save
+— gtzy sync is **on-demand today**: it connects and pulls only when you run
+`gtzy sync` or click **Sync meter**. There is no background daemon watching for
+the meter yet.
+
+That is fine in practice, because **the meter stores your readings and hands out
+everything newer than what you've already pulled**. You don't need to be
+connected at the moment you test. Check your blood sugar throughout the day with
+the phone as usual, then run `gtzy sync` whenever you like — it pulls every
+reading still in the meter's memory that gtzy hasn't seen. Nothing is lost by not
+catching each reading live.
+
+Two things to know:
+
+- **One central at a time.** When you press save, whichever bonded device grabs
+  the meter's advertisement first wins the connection — usually your phone. To
+  sync with gtzy, trigger `gtzy sync` while the meter is awake/advertising and
+  the phone app isn't racing for it (e.g. phone out of range or app closed).
+- **Matching the phone's "instant" feel** would require a background auto-sync
+  service that continuously scans for the meter and syncs on appearance. That is
+  a feasible enhancement, not part of the current build.
 
 ### Idempotent by design
 
