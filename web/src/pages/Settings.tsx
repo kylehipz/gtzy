@@ -76,7 +76,7 @@ export function Settings() {
                   <ColorSwatch
                     key={a}
                     color={a}
-                    size="md"
+                    size="sm"
                     selected={c.color === a}
                     onClick={() => updateCategory.mutate({ id: c.id, patch: { color: a } })}
                   />
