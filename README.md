@@ -75,6 +75,18 @@ Set `ANTHROPIC_API_KEY` to enable the Dashboard's AI summary panel (uses
 `claude-opus-4-8` by default; override with `GTZY_AI_MODEL`). Without a key,
 the feature no-ops cleanly — the dashboard shows a placeholder card instead.
 
+## Blood-sugar tracking
+
+The Blood Sugar tab stores glucose readings (mg/dL), charts them against a
+target range, and — with `ANTHROPIC_API_KEY` set — generates an AI summary that
+interprets the trend. Readings can be entered by hand or pulled straight off a
+Bluetooth glucose meter (Accu-Chek Guide or any device implementing the standard
+Bluetooth Glucose Profile) via `gtzy sync` / the **Sync meter** button.
+
+Bluetooth sync requires a one-time pairing and runs on the machine hosting
+`gtzy serve`. See [docs/bluetooth-sync.md](docs/bluetooth-sync.md) for setup,
+how records map to the database, and troubleshooting.
+
 ## Desktop integration (Hyprland / Waybar / Wofi)
 
 These are documented here, not shipped as config — wire them up to taste.

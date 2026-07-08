@@ -62,6 +62,45 @@ func buildJournalSummaryPrompt(from, to string, entries []models.JournalEntry) s
 	return b.String()
 }
 
+func buildBloodSugarSummaryPrompt(from, to string, readings []models.BloodSugarReading, st bloodSugarStats) string {
+	var b strings.Builder
+
+	fmt.Fprintf(&b, "You are a knowledgeable, cautious diabetes educator reviewing blood-glucose readings from %s to %s. "+
+		"You are not the patient's doctor and must not give definitive medical advice or dosing changes.\n\n", from, to)
+
+	fmt.Fprintf(&b, "Aggregate stats (mg/dL): %d readings, mean %.0f, range %.0f-%.0f, std dev %.0f, "+
+		"estimated A1C %.1f%%, time-in-range (70-180) %.0f%%, low (<70) %.0f%%, high (>180) %.0f%%.\n",
+		st.Count, st.Mean, st.Min, st.Max, st.StdDev, st.EstA1C, st.InRangePct, st.LowPct, st.HighPct)
+
+	if len(st.MealTagMeans) > 0 {
+		b.WriteString("Mean by tag:")
+		for tag, mean := range st.MealTagMeans {
+			fmt.Fprintf(&b, " %s %.0f;", tag, mean)
+		}
+		b.WriteString("\n")
+	}
+
+	b.WriteString("\nReadings:\n")
+	for _, r := range readings {
+		tag := r.MealTag
+		if tag == "" {
+			tag = "untagged"
+		}
+		fmt.Fprintf(&b, "- %s: %.0f mg/dL (%s)", r.TakenAt, r.ValueMgdl, tag)
+		if r.Notes != "" {
+			fmt.Fprintf(&b, " — %s", truncate(r.Notes, 120))
+		}
+		b.WriteString("\n")
+	}
+
+	b.WriteString("\nWrite a concise markdown summary covering: overall control (mean, estimated A1C, time-in-range), " +
+		"notable patterns (fasting/pre-meal vs post-meal spikes, dawn phenomenon, lows), and 2-3 gentle, general " +
+		"lifestyle-oriented observations. Flag any concerning lows or highs plainly. Keep it warm but direct, under 400 words. " +
+		"End with a one-line disclaimer that this is informational only and not a substitute for advice from the user's care team.")
+
+	return b.String()
+}
+
 func truncate(s string, n int) string {
 	if len(s) <= n {
 		return s

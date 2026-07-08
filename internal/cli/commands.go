@@ -14,6 +14,39 @@ import (
 
 func today() string { return time.Now().Format("2006-01-02") }
 
+// --- gtzy sync ---
+
+func newSyncCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "sync",
+		Short: "Pull new readings from the paired Bluetooth glucose meter",
+		Long: `Asks the running gtzy server to connect to the bonded Accu-Chek meter over
+Bluetooth and import any new blood-sugar records. The meter must already be
+paired to this machine (pair once with bluetoothctl); set GTZY_METER_ADDR to
+its MAC, or leave it unset to scan by name. Re-running sync never duplicates
+records already imported.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runSync()
+		},
+	}
+}
+
+func runSync() error {
+	body, err := httpPost("/api/bloodsugar/sync", nil)
+	if err != nil {
+		return err
+	}
+	var res struct {
+		Synced  int `json:"synced"`
+		Fetched int `json:"fetched"`
+	}
+	if err := json.Unmarshal(body, &res); err != nil {
+		return err
+	}
+	fmt.Printf("synced %d new reading(s) (%d fetched from meter)\n", res.Synced, res.Fetched)
+	return nil
+}
+
 // --- gtzy next ---
 
 func newNextCmd() *cobra.Command {

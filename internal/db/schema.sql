@@ -76,3 +76,19 @@ CREATE TABLE IF NOT EXISTS ai_summaries (
   created_at  TEXT NOT NULL,
   UNIQUE(period_type, period_key)
 );
+
+CREATE TABLE IF NOT EXISTS blood_sugar_readings (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  value_mgdl REAL    NOT NULL,
+  taken_at   TEXT    NOT NULL,                  -- RFC3339, from meter or user
+  meal_tag   TEXT    NOT NULL DEFAULT '',       -- fasting|pre_meal|post_meal|bedtime|random|''
+  notes      TEXT    NOT NULL DEFAULT '',
+  source     TEXT    NOT NULL DEFAULT 'manual', -- manual|meter|import
+  seq_number INTEGER,                           -- meter record sequence #, NULL for manual
+  created_at TEXT    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_bsr_taken_at ON blood_sugar_readings(taken_at);
+-- Idempotent meter sync: re-running sync never double-inserts a meter record.
+-- Mirrors the recurrence idempotency-by-DB-constraint pattern (idx_tasks_recur_day).
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bsr_meter_seq
+  ON blood_sugar_readings(seq_number) WHERE source = 'meter' AND seq_number IS NOT NULL;

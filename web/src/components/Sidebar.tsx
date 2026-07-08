@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { CalendarDays, LayoutDashboard, ListTodo, NotebookPen, Settings } from 'lucide-react'
+import { CalendarDays, Droplet, LayoutDashboard, ListTodo, NotebookPen, Settings } from 'lucide-react'
 
 const LINKS = [
   { to: '/', label: 'Today', icon: ListTodo },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays },
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/journal', label: 'Journal', icon: NotebookPen },
+  { to: '/blood-sugar', label: 'Blood Sugar', icon: Droplet },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 

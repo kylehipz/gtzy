@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import type {
   AISummary,
+  BloodSugarReading,
   CalendarDay,
   Category,
   JournalEntry,
@@ -243,6 +244,63 @@ export function useStats(from?: string, to?: string, categoryId?: string) {
   return useQuery({
     queryKey: ['stats', from, to, categoryId],
     queryFn: () => api.get<Stats>(`/stats${qs ? `?${qs}` : ''}`),
+  })
+}
+
+export function useBloodSugar(from?: string, to?: string) {
+  const qs = new URLSearchParams({
+    ...(from && { from }),
+    ...(to && { to }),
+  }).toString()
+  return useQuery({
+    queryKey: ['bloodsugar', from, to],
+    queryFn: () => api.get<BloodSugarReading[]>(`/bloodsugar${qs ? `?${qs}` : ''}`),
+  })
+}
+
+export function useCreateReading() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { value_mgdl: number; taken_at?: string; meal_tag?: string; notes?: string }) =>
+      api.post<BloodSugarReading>('/bloodsugar', input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bloodsugar'] }),
+  })
+}
+
+export function useUpdateReading() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: number; patch: Partial<BloodSugarReading> }) =>
+      api.patch<BloodSugarReading>(`/bloodsugar/${id}`, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bloodsugar'] }),
+  })
+}
+
+export function useDeleteReading() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.del(`/bloodsugar/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bloodsugar'] }),
+  })
+}
+
+export function useSyncMeter() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post<{ synced: number; fetched: number }>('/bloodsugar/sync'),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bloodsugar'] }),
+  })
+}
+
+export function useGenerateBloodSugarSummary() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ from, to }: { from: string; to: string }) =>
+      api.post<{ enabled: boolean; cached: boolean; summary: AISummary }>(
+        `/summary/bloodsugar?from=${from}&to=${to}`,
+      ),
+    onSuccess: (_data, vars) =>
+      qc.invalidateQueries({ queryKey: ['summary', 'blood_sugar', `${vars.from}..${vars.to}`] }),
   })
 }
 

@@ -74,6 +74,19 @@ type JournalEntry struct {
 	UpdatedAt string  `json:"updated_at"`
 }
 
+// BloodSugarReading is a single blood-glucose measurement, entered manually or
+// synced from a Bluetooth glucose meter. ValueMgdl is the canonical unit (mg/dL).
+type BloodSugarReading struct {
+	ID        int64   `json:"id"`
+	ValueMgdl float64 `json:"value_mgdl"`
+	TakenAt   string  `json:"taken_at"` // RFC3339
+	MealTag   string  `json:"meal_tag"` // fasting|pre_meal|post_meal|bedtime|random|""
+	Notes     string  `json:"notes"`
+	Source    string  `json:"source"`     // manual|meter|import
+	SeqNumber *int64  `json:"seq_number"` // meter record sequence #, null for manual
+	CreatedAt string  `json:"created_at"`
+}
+
 // AISummary is a cached AI-generated growth summary for a period.
 type AISummary struct {
 	ID         int64  `json:"id"`

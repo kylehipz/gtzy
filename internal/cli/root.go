@@ -35,6 +35,7 @@ GTZY_URL environment variable).`,
 		newAddCmd(),
 		newListCmd(),
 		newWaybarCmd(),
+		newSyncCmd(),
 	)
 	return root
 }

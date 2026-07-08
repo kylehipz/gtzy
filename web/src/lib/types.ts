@@ -58,6 +58,19 @@ export interface JournalEntry {
   updated_at: string
 }
 
+export type MealTag = 'fasting' | 'pre_meal' | 'post_meal' | 'bedtime' | 'random' | ''
+
+export interface BloodSugarReading {
+  id: number
+  value_mgdl: number
+  taken_at: string
+  meal_tag: MealTag
+  notes: string
+  source: 'manual' | 'meter' | 'import'
+  seq_number: number | null
+  created_at: string
+}
+
 export interface CalendarDay {
   date: string
   total: number

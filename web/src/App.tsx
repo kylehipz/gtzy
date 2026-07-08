@@ -4,6 +4,7 @@ import { ActiveTimerBar } from './components/ActiveTimerBar'
 import { Today } from './pages/Today'
 import { Calendar } from './pages/Calendar'
 import { Journal } from './pages/Journal'
+import { BloodSugar } from './pages/BloodSugar'
 import { Dashboard } from './pages/Dashboard'
 import { Settings } from './pages/Settings'
 
@@ -18,6 +19,7 @@ function App() {
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/calendar/:date" element={<Calendar />} />
           <Route path="/journal" element={<Journal />} />
+          <Route path="/blood-sugar" element={<BloodSugar />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>

@@ -41,6 +41,7 @@ func NewRouter(s *Server, spaFS fs.FS) http.Handler {
 		s.registerJournalRoutes(r)
 		s.registerCalendarRoutes(r)
 		s.registerStatsRoutes(r)
+		s.registerBloodSugarRoutes(r)
 		s.registerSummaryRoutes(r)
 	})
 
