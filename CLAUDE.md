@@ -19,6 +19,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `GTZY_AI_MODEL` — Claude model for AI summaries (default `claude-opus-4-8`)
 - `ANTHROPIC_API_KEY` — presence alone enables the AI summary feature (`internal/ai/claude.go`); unset means it no-ops cleanly, don't add fallback logic around this
 - `GTZY_METER_ADDR` — BLE MAC of the blood-glucose meter for `gtzy sync` / `POST /api/bloodsugar/sync` (`internal/meter`). Unset falls back to scanning for a device whose advertised name contains "accu-chek". The meter must already be bonded to this machine (pair once out of band: `bluetoothctl` → `scan on` → `pair <MAC>` → enter the passkey shown on the meter → `trust <MAC>`); gtzy only ever *connects*, it does not run a pairing agent.
+- `GTZY_METER_WATCH` — set to `1`/`true` to run the background auto-sync watcher inside `gtzy serve` (`internal/meter.Watcher`): it waits for the meter to advertise (which it does when you press save) and imports new readings automatically, firing a `notify-send` desktop notification. Off by default so no-Bluetooth hosts are unaffected.
+- `GTZY_METER_WATCH_INTERVAL` — cooldown in seconds between watcher scan cycles (default `10`).
 
 ## Architecture invariants
 

@@ -110,25 +110,15 @@ func (s *Server) registerBloodSugarRoutes(r chi.Router) {
 	// Sync pulls new records off the paired Bluetooth glucose meter. Runs
 	// server-side because gtzy serve runs on the machine with the BLE adapter.
 	r.Post("/bloodsugar/sync", func(w http.ResponseWriter, r *http.Request) {
-		lastSeq, err := bs.MaxMeterSeq()
-		if err != nil {
-			writeErr(w, http.StatusInternalServerError, err.Error())
-			return
-		}
 		ctx, cancel := context.WithTimeout(r.Context(), 90*time.Second)
 		defer cancel()
 
-		inputs, err := meter.Sync(ctx, lastSeq)
+		fetched, synced, err := meter.SyncInto(ctx, s.DB)
 		if err != nil {
 			writeErr(w, http.StatusBadGateway, "meter sync failed: "+err.Error())
 			return
 		}
-		n, err := bs.CreateMany(inputs)
-		if err != nil {
-			writeErr(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]any{"synced": n, "fetched": len(inputs)})
+		writeJSON(w, http.StatusOK, map[string]any{"synced": synced, "fetched": fetched})
 	})
 }
 

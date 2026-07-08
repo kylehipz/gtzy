@@ -255,6 +255,9 @@ export function useBloodSugar(from?: string, to?: string) {
   return useQuery({
     queryKey: ['bloodsugar', from, to],
     queryFn: () => api.get<BloodSugarReading[]>(`/bloodsugar${qs ? `?${qs}` : ''}`),
+    // Surface readings the background meter watcher imports without a manual refresh.
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
   })
 }
 

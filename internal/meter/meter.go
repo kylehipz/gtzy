@@ -2,6 +2,7 @@ package meter
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"strings"
@@ -20,24 +21,114 @@ var (
 	racpUUID           = bluetooth.New16BitUUID(0x2A52) // Record Access Control Point
 )
 
-// adapter is the process-wide BLE adapter (BlueZ on Linux). It is a package var
-// so it can be enabled once and reused across syncs.
-var adapter = bluetooth.DefaultAdapter
+// adapter is the process-wide BLE adapter (BlueZ on Linux). bleMu serializes all
+// access to it: the background Watcher and any concurrent manual sync must not
+// scan/connect at the same time. The Watcher releases bleMu between scan cycles
+// (see watcher.go) so a manual sync is never starved.
+var (
+	adapter = bluetooth.DefaultAdapter
+	bleMu   sync.Mutex
+)
 
-// Sync connects to the paired glucose meter, requests stored records newer than
-// lastSeq (or all records when lastSeq <= 0), decodes them, and returns them as
-// store inputs. Dedup against already-synced records is handled by the caller's
-// DB unique index. The meter must already be bonded to this machine (pair once
-// out of band with `bluetoothctl`); set GTZY_METER_ADDR to its MAC, otherwise
-// Sync scans for a device whose advertised name contains "accu-chek".
-func Sync(ctx context.Context, lastSeq int64) ([]store.BloodSugarInput, error) {
-	if err := adapter.Enable(); err != nil {
-		return nil, fmt.Errorf("enable bluetooth adapter: %w", err)
+// scanWindow is how long a single sync attempt waits for the meter to advertise
+// before giving up for this cycle. The meter advertises when you press save, so
+// this is the window in which we can catch it.
+const scanWindow = 8 * time.Second
+
+// SyncInto scans for the meter, and if it is currently advertising, pulls records
+// newer than what is already stored and inserts them. Returns how many records
+// were fetched from the meter and how many were newly inserted (dedup drops the
+// rest). When the meter is not present it returns (0, 0, nil) — that is the
+// normal idle case, not an error. Holds bleMu for the whole scan+pull so it is
+// safe to call from both the HTTP handler and the Watcher.
+func SyncInto(ctx context.Context, db *sql.DB) (fetched, inserted int, err error) {
+	bleMu.Lock()
+	defer bleMu.Unlock()
+
+	bs := &store.BloodSugarStore{DB: db}
+	lastSeq, err := bs.MaxMeterSeq()
+	if err != nil {
+		return 0, 0, err
 	}
 
-	device, err := connect(ctx)
+	addr, found, err := findMeter(ctx, scanWindow)
 	if err != nil {
-		return nil, err
+		return 0, 0, err
+	}
+	if !found {
+		return 0, 0, nil
+	}
+
+	inputs, err := pull(ctx, addr, lastSeq)
+	if err != nil {
+		return 0, 0, err
+	}
+	n, err := bs.CreateMany(inputs)
+	if err != nil {
+		return len(inputs), 0, err
+	}
+	return len(inputs), n, nil
+}
+
+// findMeter scans for the paired meter and returns its address once it is seen
+// advertising. It matches by GTZY_METER_ADDR when set, otherwise by an advertised
+// name containing "accu-chek". If the window elapses with no match it returns
+// found=false and a nil error (the meter is simply asleep / out of range).
+//
+// adapter.Scan blocks until StopScan is called, so this waits for Scan to fully
+// return before it returns — leaving the adapter idle and safe for the next
+// operation (a subsequent scan or connect). Returning early while a scan is
+// still tearing down causes BlueZ "operation already in progress" errors.
+func findMeter(ctx context.Context, window time.Duration) (bluetooth.Address, bool, error) {
+	if err := adapter.Enable(); err != nil {
+		return bluetooth.Address{}, false, fmt.Errorf("enable bluetooth adapter: %w", err)
+	}
+	wantAddr := strings.ToLower(os.Getenv("GTZY_METER_ADDR"))
+
+	scanCtx, cancel := context.WithTimeout(ctx, window)
+	defer cancel()
+
+	// Stop the blocking scan once we match or the window elapses.
+	go func() {
+		<-scanCtx.Done()
+		_ = adapter.StopScan()
+	}()
+
+	found := make(chan bluetooth.Address, 1)
+	// We always stop the scan ourselves (on match or timeout), so Scan's returned
+	// error is the expected "scan stopped" signal and is intentionally ignored.
+	_ = adapter.Scan(func(a *bluetooth.Adapter, r bluetooth.ScanResult) {
+		match := false
+		if wantAddr != "" {
+			match = strings.ToLower(r.Address.String()) == wantAddr
+		} else {
+			name := strings.ToLower(r.LocalName())
+			match = strings.Contains(name, "accu-chek") || strings.Contains(name, "meter")
+		}
+		if match {
+			select {
+			case found <- r.Address:
+				cancel() // trigger StopScan
+			default:
+			}
+		}
+	})
+
+	select {
+	case addr := <-found:
+		return addr, true, nil
+	default:
+		return bluetooth.Address{}, false, nil
+	}
+}
+
+// pull connects to an advertising meter and reads its stored records with
+// sequence number greater than lastSeq (or all records when lastSeq <= 0),
+// decoding each per the Bluetooth Glucose Profile.
+func pull(ctx context.Context, addr bluetooth.Address, lastSeq int64) ([]store.BloodSugarInput, error) {
+	device, err := adapter.Connect(addr, bluetooth.ConnectionParams{})
+	if err != nil {
+		return nil, fmt.Errorf("connect to meter %s (is it awake and bonded?): %w", addr.String(), err)
 	}
 	defer device.Disconnect() //nolint:errcheck // best-effort cleanup
 
@@ -117,52 +208,6 @@ func reportRecordsCmd(lastSeq int64) []byte {
 	}
 	next := uint16(lastSeq + 1)
 	return []byte{0x01, 0x03, 0x01, byte(next), byte(next >> 8)}
-}
-
-// connect returns a connected Device, either by the configured address or by
-// scanning for the meter by advertised name.
-func connect(ctx context.Context) (bluetooth.Device, error) {
-	if addrStr := os.Getenv("GTZY_METER_ADDR"); addrStr != "" {
-		var addr bluetooth.Address
-		addr.Set(addrStr)
-		dev, err := adapter.Connect(addr, bluetooth.ConnectionParams{})
-		if err != nil {
-			return bluetooth.Device{}, fmt.Errorf("connect to meter %s (is it bonded and awake?): %w", addrStr, err)
-		}
-		return dev, nil
-	}
-
-	found := make(chan bluetooth.ScanResult, 1)
-	scanErr := make(chan error, 1)
-	var once sync.Once
-	go func() {
-		err := adapter.Scan(func(a *bluetooth.Adapter, r bluetooth.ScanResult) {
-			name := strings.ToLower(r.LocalName())
-			if strings.Contains(name, "accu-chek") || strings.Contains(name, "meter") {
-				once.Do(func() {
-					_ = a.StopScan()
-					found <- r
-				})
-			}
-		})
-		if err != nil {
-			scanErr <- err
-		}
-	}()
-
-	select {
-	case r := <-found:
-		dev, err := adapter.Connect(r.Address, bluetooth.ConnectionParams{})
-		if err != nil {
-			return bluetooth.Device{}, fmt.Errorf("connect to scanned meter %s: %w", r.Address.String(), err)
-		}
-		return dev, nil
-	case err := <-scanErr:
-		return bluetooth.Device{}, fmt.Errorf("scan for meter: %w", err)
-	case <-ctx.Done():
-		_ = adapter.StopScan()
-		return bluetooth.Device{}, fmt.Errorf("no glucose meter found (set GTZY_METER_ADDR to its MAC): %w", ctx.Err())
-	}
 }
 
 // discover finds the Glucose Measurement and RACP characteristics on the device.

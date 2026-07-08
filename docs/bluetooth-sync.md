@@ -110,27 +110,44 @@ sequence number already imported.
 
 ### Automatic vs. on-demand
 
-Unlike your phone app — which auto-connects and syncs the instant you press save
-— gtzy sync is **on-demand today**: it connects and pulls only when you run
-`gtzy sync` or click **Sync meter**. There is no background daemon watching for
-the meter yet.
+gtzy supports both:
 
-That is fine in practice, because **the meter stores your readings and hands out
-everything newer than what you've already pulled**. You don't need to be
-connected at the moment you test. Check your blood sugar throughout the day with
-the phone as usual, then run `gtzy sync` whenever you like — it pulls every
-reading still in the meter's memory that gtzy hasn't seen. Nothing is lost by not
-catching each reading live.
+- **On-demand** — run `gtzy sync` or click **Sync meter** to connect and pull
+  right now.
+- **Automatic** (opt-in) — set `GTZY_METER_WATCH=1` and gtzy serve runs a
+  background **watcher** that reproduces the phone-app experience: it waits for
+  the meter to advertise (which it does when you press save), imports any new
+  readings on its own, and fires a desktop notification (`notify-send`) like
+  "gtzy: blood sugar synced — 142 mg/dL at 08:03". The Blood Sugar tab also
+  refreshes on its own, so imported readings appear without a manual reload.
+
+Enable the watcher (after the meter is paired and you know its MAC):
+
+```sh
+export GTZY_METER_WATCH=1
+export GTZY_METER_ADDR=AA:BB:CC:DD:EE:FF   # recommended; else it scans by name
+# optional: seconds between scan cycles (default 10)
+export GTZY_METER_WATCH_INTERVAL=10
+```
+
+For the systemd user service, add those `export` lines to
+`~/.dotfiles/scripts/start-gtzy-service.sh` and
+`systemctl --user restart gtzy.service`.
+
+Either way, **the meter stores your readings and hands out everything newer than
+what you've already pulled** — so nothing is lost if gtzy isn't connected at the
+moment you test. Even with the watcher off, a later `gtzy sync` pulls every
+reading still in the meter's memory that gtzy hasn't seen.
 
 Two things to know:
 
 - **One central at a time.** When you press save, whichever bonded device grabs
-  the meter's advertisement first wins the connection — usually your phone. To
-  sync with gtzy, trigger `gtzy sync` while the meter is awake/advertising and
-  the phone app isn't racing for it (e.g. phone out of range or app closed).
-- **Matching the phone's "instant" feel** would require a background auto-sync
-  service that continuously scans for the meter and syncs on appearance. That is
-  a feasible enhancement, not part of the current build.
+  the meter's advertisement first wins the connection — usually your phone. For
+  gtzy (manual or watcher) to win, the phone app should be out of range or
+  closed while the meter is advertising.
+- **The watcher time-slices the adapter.** It scans in short windows and pauses
+  between cycles (`GTZY_METER_WATCH_INTERVAL`), so a manual `gtzy sync` is never
+  blocked for long, and BLE audio (headphones) keeps working alongside it.
 
 ### Idempotent by design
 

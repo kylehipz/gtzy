@@ -1,16 +1,21 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
+	"time"
 
 	"gtzy/internal/ai"
 	"gtzy/internal/api"
 	"gtzy/internal/cli"
 	"gtzy/internal/db"
+	"gtzy/internal/meter"
 	"gtzy/web"
 
 	"github.com/spf13/cobra"
@@ -65,12 +70,41 @@ func runServe(port int, dbPath string) error {
 	server := &api.Server{DB: conn, AI: ai.New()}
 	handler := api.NewRouter(server, spaFS())
 
+	// Optional background auto-sync from a Bluetooth glucose meter. Opt-in so
+	// headless / no-Bluetooth hosts are unaffected.
+	if watchEnabled() {
+		w := &meter.Watcher{DB: conn, Interval: watchInterval(), OnImport: meter.NotifyImport}
+		w.Start(context.Background())
+		log.Printf("meter watch enabled (auto-sync on advertise, every %s)", watchInterval())
+	}
+
 	addr := fmt.Sprintf(":%d", port)
 	log.Printf("gtzy listening on %s (db: %s)", addr, path)
 	if err := http.ListenAndServe(addr, handler); err != nil {
 		return fmt.Errorf("server error: %w", err)
 	}
 	return nil
+}
+
+// watchEnabled reports whether background meter auto-sync is turned on via
+// GTZY_METER_WATCH.
+func watchEnabled() bool {
+	switch strings.ToLower(os.Getenv("GTZY_METER_WATCH")) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return false
+}
+
+// watchInterval is the cooldown between meter scan cycles, from
+// GTZY_METER_WATCH_INTERVAL (seconds), defaulting to 10s.
+func watchInterval() time.Duration {
+	if s := os.Getenv("GTZY_METER_WATCH_INTERVAL"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			return time.Duration(n) * time.Second
+		}
+	}
+	return 10 * time.Second
 }
 
 // spaFS returns the embedded frontend build, or nil if it hasn't been built

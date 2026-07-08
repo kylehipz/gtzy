@@ -48,6 +48,29 @@ func (s *BloodSugarStore) List(from, to string) ([]models.BloodSugarReading, err
 	return readings, rows.Err()
 }
 
+// RecentMeter returns the most recently inserted meter-sourced readings (highest
+// ids first), up to limit. Used to describe what a background sync just imported.
+func (s *BloodSugarStore) RecentMeter(limit int) ([]models.BloodSugarReading, error) {
+	rows, err := s.DB.Query(
+		`SELECT `+bloodSugarCols+` FROM blood_sugar_readings WHERE source = 'meter' ORDER BY id DESC LIMIT ?`,
+		limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	readings := []models.BloodSugarReading{}
+	for rows.Next() {
+		r, err := scanBloodSugar(rows)
+		if err != nil {
+			return nil, err
+		}
+		readings = append(readings, r)
+	}
+	return readings, rows.Err()
+}
+
 func (s *BloodSugarStore) Get(id int64) (models.BloodSugarReading, error) {
 	row := s.DB.QueryRow(`SELECT `+bloodSugarCols+` FROM blood_sugar_readings WHERE id = ?`, id)
 	return scanBloodSugar(row)
