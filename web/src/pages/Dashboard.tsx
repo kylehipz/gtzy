@@ -51,14 +51,16 @@ export function Dashboard() {
 
   const estVsActual = (stats?.est_vs_actual ?? []).map((d) => ({
     date: d.date.slice(5),
-    Estimated: d.estimated_minutes,
+    Estimated: Math.round(d.estimated_seconds / 60),
     Actual: Math.round(d.actual_seconds / 60),
   }))
 
   const estVsActualToday = todayTasks.map((t) => ({
     name: t.title,
-    Estimated: t.estimated_minutes,
+    Estimated: Math.round(t.estimated_seconds / 60),
     Actual: Math.round(t.elapsed_seconds / 60),
+    EstSec: t.estimated_seconds,
+    ActualSec: t.elapsed_seconds,
   }))
 
   const categoryTime = (stats?.time_by_category ?? []).filter((c) => c.seconds > 0)
@@ -99,7 +101,7 @@ export function Dashboard() {
         <StatCard
           icon={Target}
           label="Est. vs actual"
-          value={stats ? `${stats.estimated_minutes_total}m / ${Math.round(stats.actual_seconds_total / 60)}m` : '—'}
+          value={stats ? `${fmtDuration(stats.estimated_seconds_total)} / ${fmtDuration(stats.actual_seconds_total)}` : '—'}
         />
         <StatCard icon={Clock} label="Total focus time" value={stats ? fmtDuration(stats.actual_seconds_total) : '—'} />
       </div>
@@ -171,7 +173,7 @@ export function Dashboard() {
                         )}
                       </div>
                       <span className={`flex shrink-0 items-center gap-1 font-mono ${over ? 'text-red' : 'text-subtext0'}`}>
-                        {t.Actual}m / {t.Estimated}m
+                        {fmtDuration(t.ActualSec)} / {fmtDuration(t.EstSec)}
                         {over && <AlertTriangle size={11} />}
                       </span>
                     </div>

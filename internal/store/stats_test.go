@@ -24,15 +24,15 @@ func TestStatsRangeAggregation(t *testing.T) {
 	d1 := "2026-07-01"
 	d2 := "2026-07-02"
 
-	t1, err := ts.Create(TaskInput{Title: "A", ScheduledDate: &d1, EstimatedMinutes: 30})
+	t1, err := ts.Create(TaskInput{Title: "A", ScheduledDate: &d1, EstimatedSeconds: 1800})
 	if err != nil {
 		t.Fatalf("create t1: %v", err)
 	}
-	t2, err := ts.Create(TaskInput{Title: "B", ScheduledDate: &d1, EstimatedMinutes: 20})
+	t2, err := ts.Create(TaskInput{Title: "B", ScheduledDate: &d1, EstimatedSeconds: 1200})
 	if err != nil {
 		t.Fatalf("create t2: %v", err)
 	}
-	t3, err := ts.Create(TaskInput{Title: "C", ScheduledDate: &d2, EstimatedMinutes: 10})
+	t3, err := ts.Create(TaskInput{Title: "C", ScheduledDate: &d2, EstimatedSeconds: 600})
 	if err != nil {
 		t.Fatalf("create t3: %v", err)
 	}
@@ -55,8 +55,8 @@ func TestStatsRangeAggregation(t *testing.T) {
 	if stats.TasksCompleted != 1 {
 		t.Errorf("expected tasks_completed=1, got %d", stats.TasksCompleted)
 	}
-	if stats.EstimatedMinutesTotal != 60 {
-		t.Errorf("expected estimated_minutes_total=60, got %d", stats.EstimatedMinutesTotal)
+	if stats.EstimatedSecondsTotal != 3600 {
+		t.Errorf("expected estimated_seconds_total=3600, got %d", stats.EstimatedSecondsTotal)
 	}
 	wantRate := 1.0 / 3.0
 	if stats.CompletionRate < wantRate-0.001 || stats.CompletionRate > wantRate+0.001 {

@@ -36,7 +36,7 @@ export function ActiveTimerBar() {
             <span className="truncate font-medium text-text">{current.title}</span>
             <span className="shrink-0 font-mono text-sm text-subtext0">
               {fmtDuration(elapsedSecondsLive(current.active_started_at, current.actual_seconds))}
-              {current.estimated_minutes > 0 && ` / ${fmtDuration(current.estimated_minutes * 60)}`}
+              {current.estimated_seconds > 0 && ` / ${fmtDuration(current.estimated_seconds)}`}
             </span>
           </div>
           <div className="flex shrink-0 gap-2">

@@ -53,7 +53,7 @@ export function DayTimeline({
   // stack sequentially from 00:00 using a running cursor.
   let cursor = 0
   const blocks = tasks.map((t) => {
-    const dur = t.estimated_minutes || 30
+    const dur = Math.round((t.estimated_seconds || 0) / 60) || 30
     const startMin = t.scheduled_start ? topFor(t.scheduled_start) / PX_PER_MIN : cursor
     if (!t.scheduled_start) cursor += dur
     return { task: t, top: startMin * PX_PER_MIN, startMin, endMin: startMin + dur, colIndex: 0, colCount: 1 }
@@ -154,7 +154,7 @@ function TimelineBlock({
   const moveState = useRef<{ startY: number; startMinutes: number; moved: boolean } | null>(null)
   const suppressClickRef = useRef(false)
 
-  const baseMinutes = task.estimated_minutes || 30
+  const baseMinutes = Math.round((task.estimated_seconds || 0) / 60) || 30
   const minutes = previewMinutes ?? baseMinutes
   const height = Math.max(minutes * PX_PER_MIN, 24)
 
@@ -185,7 +185,7 @@ function TimelineBlock({
     dragState.current = null
     setPreviewMinutes((current) => {
       if (current !== null && current !== baseMinutes) {
-        updateTask.mutate({ id: task.id, patch: { estimated_minutes: current } })
+        updateTask.mutate({ id: task.id, patch: { estimated_seconds: current * 60 } })
       }
       return null
     })

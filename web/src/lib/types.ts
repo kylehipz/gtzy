@@ -11,7 +11,7 @@ export interface Recurrence {
   notes: string
   category_id: number | null
   priority: Priority
-  estimated_minutes: number
+  estimated_seconds: number
   scheduled_start: string | null
   freq: 'daily' | 'weekly' | 'monthly'
   interval: number
@@ -34,7 +34,7 @@ export interface Task {
   category_id: number | null
   priority: Priority
   status: TaskStatus
-  estimated_minutes: number
+  estimated_seconds: number
   actual_seconds: number
   scheduled_date: string | null
   scheduled_start: string | null
@@ -81,7 +81,7 @@ export interface CalendarDay {
 
 export interface EstVsActualDay {
   date: string
-  estimated_minutes: number
+  estimated_seconds: number
   actual_seconds: number
   total: number
   done: number
@@ -97,7 +97,7 @@ export interface Stats {
   tasks_completed: number
   tasks_total: number
   completion_rate: number
-  estimated_minutes_total: number
+  estimated_seconds_total: number
   actual_seconds_total: number
   est_vs_actual: EstVsActualDay[]
   time_by_category: CategoryTime[]

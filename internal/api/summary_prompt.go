@@ -13,7 +13,7 @@ func buildSummaryPrompt(periodType, periodKey string, stats models.Stats, tasks 
 	fmt.Fprintf(&b, "You are a personal growth coach analyzing a %s of productivity data (%s).\n\n", periodType, periodKey)
 	fmt.Fprintf(&b, "Stats: %d/%d tasks completed (%.0f%%), %d min estimated vs %d min actual, current streak %d days, busiest category: %s.\n\n",
 		stats.TasksCompleted, stats.TasksTotal, stats.CompletionRate*100,
-		stats.EstimatedMinutesTotal, int(stats.ActualSecondsTotal/60), stats.CurrentStreak, stats.BusiestCategory)
+		stats.EstimatedSecondsTotal/60, int(stats.ActualSecondsTotal/60), stats.CurrentStreak, stats.BusiestCategory)
 
 	b.WriteString("Tasks:\n")
 	for _, t := range tasks {
@@ -22,7 +22,7 @@ func buildSummaryPrompt(periodType, periodKey string, stats models.Stats, tasks 
 		case "done", "todo", "paused", "in_progress":
 			status = t.Status
 		}
-		fmt.Fprintf(&b, "- [%s] %s (priority: %s, est: %dm, actual: %ds)\n", status, t.Title, t.Priority, t.EstimatedMinutes, t.ActualSeconds)
+		fmt.Fprintf(&b, "- [%s] %s (priority: %s, est: %ds, actual: %ds)\n", status, t.Title, t.Priority, t.EstimatedSeconds, t.ActualSeconds)
 	}
 
 	if len(entries) > 0 {

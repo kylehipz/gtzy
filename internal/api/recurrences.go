@@ -28,7 +28,7 @@ func (s *Server) registerRecurrenceRoutes(r chi.Router) {
 			Notes            string  `json:"notes"`
 			CategoryID       *int64  `json:"category_id"`
 			Priority         string  `json:"priority"`
-			EstimatedMinutes int     `json:"estimated_minutes"`
+			EstimatedSeconds int     `json:"estimated_seconds"`
 			ScheduledStart   *string `json:"scheduled_start"`
 			Freq             string  `json:"freq"`
 			Interval         int     `json:"interval"`
@@ -47,7 +47,7 @@ func (s *Server) registerRecurrenceRoutes(r chi.Router) {
 		}
 		rec, err := rs.Create(store.RecurrenceInput{
 			Title: body.Title, Notes: body.Notes, CategoryID: body.CategoryID,
-			Priority: body.Priority, EstimatedMinutes: body.EstimatedMinutes,
+			Priority: body.Priority, EstimatedSeconds: body.EstimatedSeconds,
 			ScheduledStart: body.ScheduledStart, Freq: body.Freq, Interval: body.Interval,
 			DaysOfWeek: body.DaysOfWeek, DayOfMonth: body.DayOfMonth,
 			StartDate: body.StartDate, EndDate: body.EndDate,
@@ -69,7 +69,7 @@ func (s *Server) registerRecurrenceRoutes(r chi.Router) {
 			Title            *string `json:"title"`
 			Notes            *string `json:"notes"`
 			Priority         *string `json:"priority"`
-			EstimatedMinutes *int    `json:"estimated_minutes"`
+			EstimatedSeconds *int    `json:"estimated_seconds"`
 			Freq             *string `json:"freq"`
 			Interval         *int    `json:"interval"`
 			DaysOfWeek       *string `json:"days_of_week"`
@@ -87,7 +87,7 @@ func (s *Server) registerRecurrenceRoutes(r chi.Router) {
 		}
 		rec, err := rs.Update(id, store.RecurrencePatch{
 			Title: body.Title, Notes: body.Notes, Priority: body.Priority,
-			EstimatedMinutes: body.EstimatedMinutes, Freq: body.Freq, Interval: body.Interval,
+			EstimatedSeconds: body.EstimatedSeconds, Freq: body.Freq, Interval: body.Interval,
 			DaysOfWeek: body.DaysOfWeek, StartDate: body.StartDate, Active: body.Active,
 		})
 		if err != nil {

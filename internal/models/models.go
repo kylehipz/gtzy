@@ -16,7 +16,7 @@ type Recurrence struct {
 	Notes            string  `json:"notes"`
 	CategoryID       *int64  `json:"category_id"`
 	Priority         string  `json:"priority"`
-	EstimatedMinutes int     `json:"estimated_minutes"`
+	EstimatedSeconds int     `json:"estimated_seconds"`
 	ScheduledStart   *string `json:"scheduled_start"`
 	Freq             string  `json:"freq"` // daily|weekly|monthly
 	Interval         int     `json:"interval"`
@@ -37,7 +37,7 @@ type Task struct {
 	CategoryID       *int64  `json:"category_id"`
 	Priority         string  `json:"priority"` // low|medium|high|urgent
 	Status           string  `json:"status"`   // todo|in_progress|paused|done
-	EstimatedMinutes int     `json:"estimated_minutes"`
+	EstimatedSeconds int     `json:"estimated_seconds"`
 	ActualSeconds    int64   `json:"actual_seconds"`
 	ScheduledDate    *string `json:"scheduled_date"`
 	ScheduledStart   *string `json:"scheduled_start"`
@@ -111,7 +111,7 @@ type Stats struct {
 	TasksCompleted        int              `json:"tasks_completed"`
 	TasksTotal            int              `json:"tasks_total"`
 	CompletionRate        float64          `json:"completion_rate"`
-	EstimatedMinutesTotal int              `json:"estimated_minutes_total"`
+	EstimatedSecondsTotal int              `json:"estimated_seconds_total"`
 	ActualSecondsTotal    int64            `json:"actual_seconds_total"`
 	EstVsActualPerDay     []EstVsActualDay `json:"est_vs_actual"`
 	TimeByCategory        []CategoryTime   `json:"time_by_category"`
@@ -122,7 +122,7 @@ type Stats struct {
 
 type EstVsActualDay struct {
 	Date             string `json:"date"`
-	EstimatedMinutes int    `json:"estimated_minutes"`
+	EstimatedSeconds int    `json:"estimated_seconds"`
 	ActualSeconds    int64  `json:"actual_seconds"`
 	Total            int    `json:"total"`
 	Done             int    `json:"done"`

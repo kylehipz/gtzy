@@ -20,14 +20,14 @@ type TaskFilters struct {
 	CategoryID string // numeric string, empty = no filter
 }
 
-const taskCols = `id, title, notes, category_id, priority, status, estimated_minutes,
+const taskCols = `id, title, notes, category_id, priority, status, estimated_seconds,
 	actual_seconds, scheduled_date, scheduled_start, active_started_at, completed_at,
 	recurrence_id, sort_order, created_at, updated_at`
 
 func scanTask(row interface{ Scan(...any) error }) (models.Task, error) {
 	var t models.Task
 	err := row.Scan(
-		&t.ID, &t.Title, &t.Notes, &t.CategoryID, &t.Priority, &t.Status, &t.EstimatedMinutes,
+		&t.ID, &t.Title, &t.Notes, &t.CategoryID, &t.Priority, &t.Status, &t.EstimatedSeconds,
 		&t.ActualSeconds, &t.ScheduledDate, &t.ScheduledStart, &t.ActiveStartedAt, &t.CompletedAt,
 		&t.RecurrenceID, &t.SortOrder, &t.CreatedAt, &t.UpdatedAt,
 	)
@@ -105,7 +105,7 @@ type TaskInput struct {
 	Notes            string
 	CategoryID       *int64
 	Priority         string
-	EstimatedMinutes int
+	EstimatedSeconds int
 	ScheduledDate    *string
 	ScheduledStart   *string
 	SortOrder        int
@@ -118,10 +118,10 @@ func (s *TaskStore) Create(in TaskInput) (models.Task, error) {
 	}
 	now := NowUTC()
 	res, err := s.DB.Exec(
-		`INSERT INTO tasks (title, notes, category_id, priority, status, estimated_minutes,
+		`INSERT INTO tasks (title, notes, category_id, priority, status, estimated_seconds,
 			scheduled_date, scheduled_start, recurrence_id, sort_order, created_at, updated_at)
 		 VALUES (?, ?, ?, ?, 'todo', ?, ?, ?, ?, ?, ?, ?)`,
-		in.Title, in.Notes, in.CategoryID, in.Priority, in.EstimatedMinutes,
+		in.Title, in.Notes, in.CategoryID, in.Priority, in.EstimatedSeconds,
 		in.ScheduledDate, in.ScheduledStart, in.RecurrenceID, in.SortOrder, now, now,
 	)
 	if err != nil {
@@ -141,7 +141,7 @@ type TaskPatch struct {
 	CategoryID       **int64
 	Priority         *string
 	Status           *string
-	EstimatedMinutes *int
+	EstimatedSeconds *int
 	ScheduledDate    **string
 	ScheduledStart   **string
 	SortOrder        *int
@@ -171,8 +171,8 @@ func (s *TaskStore) Update(id int64, p TaskPatch) (models.Task, error) {
 	if p.Status != nil {
 		add("status", *p.Status)
 	}
-	if p.EstimatedMinutes != nil {
-		add("estimated_minutes", *p.EstimatedMinutes)
+	if p.EstimatedSeconds != nil {
+		add("estimated_seconds", *p.EstimatedSeconds)
 	}
 	if p.ScheduledDate != nil {
 		add("scheduled_date", *p.ScheduledDate)

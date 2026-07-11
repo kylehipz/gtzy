@@ -232,8 +232,8 @@ func runCurrent() error {
 	}
 	t := res.Current
 	est := "no estimate"
-	if t.EstimatedMinutes > 0 {
-		est = fmt.Sprintf("est %s", fmtDuration(int64(t.EstimatedMinutes)*60))
+	if t.EstimatedSeconds > 0 {
+		est = fmt.Sprintf("est %s", fmtDuration(int64(t.EstimatedSeconds)))
 	}
 	fmt.Printf("%s — %s elapsed (%s)\n", t.Title, fmtDuration(t.ElapsedSeconds), est)
 	return nil
@@ -296,7 +296,7 @@ func runAdd(title, priority, category string, est int, date, at, repeat string) 
 			return err
 		}
 		payload := map[string]any{
-			"title": title, "priority": priority, "estimated_minutes": est,
+			"title": title, "priority": priority, "estimated_seconds": est * 60,
 			"scheduled_start": scheduledStart, "freq": freq, "interval": interval,
 			"days_of_week": daysOfWeek, "day_of_month": dayOfMonth, "start_date": date,
 		}
@@ -311,7 +311,7 @@ func runAdd(title, priority, category string, est int, date, at, repeat string) 
 	}
 
 	payload := map[string]any{
-		"title": title, "priority": priority, "estimated_minutes": est,
+		"title": title, "priority": priority, "estimated_seconds": est * 60,
 		"scheduled_date": date, "scheduled_start": scheduledStart,
 	}
 	if categoryID != nil {
@@ -483,9 +483,9 @@ func computeWaybarOutput() waybarOutput {
 			t := res.Current
 			return waybarOutput{
 				Text:       fmt.Sprintf("  %s · %s", t.Title, fmtDuration(t.ElapsedSeconds)),
-				Tooltip:    fmt.Sprintf("%s\nElapsed %s / Est %s", t.Title, fmtDuration(t.ElapsedSeconds), fmtDuration(int64(t.EstimatedMinutes)*60)),
+				Tooltip:    fmt.Sprintf("%s\nElapsed %s / Est %s", t.Title, fmtDuration(t.ElapsedSeconds), fmtDuration(int64(t.EstimatedSeconds))),
 				Class:      "running",
-				Percentage: percentage(t.ElapsedSeconds, t.EstimatedMinutes),
+				Percentage: percentage(t.ElapsedSeconds, t.EstimatedSeconds),
 			}
 		}
 	}
@@ -497,9 +497,9 @@ func computeWaybarOutput() waybarOutput {
 			t := mostRecentlyUpdated(tasks)
 			return waybarOutput{
 				Text:       fmt.Sprintf("  %s · %s", t.Title, fmtDuration(t.ElapsedSeconds)),
-				Tooltip:    fmt.Sprintf("%s (paused)\nElapsed %s / Est %s", t.Title, fmtDuration(t.ElapsedSeconds), fmtDuration(int64(t.EstimatedMinutes)*60)),
+				Tooltip:    fmt.Sprintf("%s (paused)\nElapsed %s / Est %s", t.Title, fmtDuration(t.ElapsedSeconds), fmtDuration(int64(t.EstimatedSeconds))),
 				Class:      "paused",
-				Percentage: percentage(t.ElapsedSeconds, t.EstimatedMinutes),
+				Percentage: percentage(t.ElapsedSeconds, t.EstimatedSeconds),
 			}
 		}
 	}

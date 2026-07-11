@@ -12,14 +12,14 @@ import (
 
 type RecurrenceStore struct{ DB *sql.DB }
 
-const recurCols = `id, title, notes, category_id, priority, estimated_minutes, scheduled_start,
+const recurCols = `id, title, notes, category_id, priority, estimated_seconds, scheduled_start,
 	freq, interval, days_of_week, day_of_month, start_date, end_date, active, created_at, updated_at`
 
 func scanRecurrence(row interface{ Scan(...any) error }) (models.Recurrence, error) {
 	var rec models.Recurrence
 	var active int
 	err := row.Scan(
-		&rec.ID, &rec.Title, &rec.Notes, &rec.CategoryID, &rec.Priority, &rec.EstimatedMinutes,
+		&rec.ID, &rec.Title, &rec.Notes, &rec.CategoryID, &rec.Priority, &rec.EstimatedSeconds,
 		&rec.ScheduledStart, &rec.Freq, &rec.Interval, &rec.DaysOfWeek, &rec.DayOfMonth,
 		&rec.StartDate, &rec.EndDate, &active, &rec.CreatedAt, &rec.UpdatedAt,
 	)
@@ -55,7 +55,7 @@ type RecurrenceInput struct {
 	Notes            string
 	CategoryID       *int64
 	Priority         string
-	EstimatedMinutes int
+	EstimatedSeconds int
 	ScheduledStart   *string
 	Freq             string
 	Interval         int
@@ -74,11 +74,11 @@ func (s *RecurrenceStore) Create(in RecurrenceInput) (models.Recurrence, error) 
 	}
 	now := NowUTC()
 	res, err := s.DB.Exec(
-		`INSERT INTO recurrences (title, notes, category_id, priority, estimated_minutes,
+		`INSERT INTO recurrences (title, notes, category_id, priority, estimated_seconds,
 			scheduled_start, freq, interval, days_of_week, day_of_month, start_date, end_date,
 			active, created_at, updated_at)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
-		in.Title, in.Notes, in.CategoryID, in.Priority, in.EstimatedMinutes,
+		in.Title, in.Notes, in.CategoryID, in.Priority, in.EstimatedSeconds,
 		in.ScheduledStart, in.Freq, in.Interval, in.DaysOfWeek, in.DayOfMonth,
 		in.StartDate, in.EndDate, now, now,
 	)
@@ -97,7 +97,7 @@ type RecurrencePatch struct {
 	Notes            *string
 	CategoryID       **int64
 	Priority         *string
-	EstimatedMinutes *int
+	EstimatedSeconds *int
 	ScheduledStart   **string
 	Freq             *string
 	Interval         *int
@@ -128,8 +128,8 @@ func (s *RecurrenceStore) Update(id int64, p RecurrencePatch) (models.Recurrence
 	if p.Priority != nil {
 		add("priority", *p.Priority)
 	}
-	if p.EstimatedMinutes != nil {
-		add("estimated_minutes", *p.EstimatedMinutes)
+	if p.EstimatedSeconds != nil {
+		add("estimated_seconds", *p.EstimatedSeconds)
 	}
 	if p.ScheduledStart != nil {
 		add("scheduled_start", *p.ScheduledStart)
@@ -231,11 +231,11 @@ func (s *RecurrenceStore) EnsureInstancesForDate(date string) (int, error) {
 			continue
 		}
 		res, err := s.DB.Exec(
-			`INSERT INTO tasks (title, notes, category_id, priority, status, estimated_minutes,
+			`INSERT INTO tasks (title, notes, category_id, priority, status, estimated_seconds,
 				scheduled_date, scheduled_start, recurrence_id, sort_order, created_at, updated_at)
 			 VALUES (?, ?, ?, ?, 'todo', ?, ?, ?, ?, 0, ?, ?)
 			 ON CONFLICT (recurrence_id, scheduled_date) WHERE recurrence_id IS NOT NULL DO NOTHING`,
-			rec.Title, rec.Notes, rec.CategoryID, rec.Priority, rec.EstimatedMinutes,
+			rec.Title, rec.Notes, rec.CategoryID, rec.Priority, rec.EstimatedSeconds,
 			date, rec.ScheduledStart, rec.ID, now, now,
 		)
 		if err != nil {

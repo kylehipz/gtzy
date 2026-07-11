@@ -18,7 +18,7 @@ type StatsStore struct {
 func (s *StatsStore) Range(from, to, categoryID string) (models.Stats, error) {
 	var stats models.Stats
 
-	q := `SELECT scheduled_date, status, estimated_minutes, actual_seconds
+	q := `SELECT scheduled_date, status, estimated_seconds, actual_seconds
 		 FROM tasks WHERE scheduled_date >= ? AND scheduled_date <= ?`
 	args := []any{from, to}
 	if categoryID != "" {
@@ -31,15 +31,15 @@ func (s *StatsStore) Range(from, to, categoryID string) (models.Stats, error) {
 	}
 	type dayAgg struct {
 		total, done   int
-		estMinutes    int
+		estSeconds    int
 		actualSeconds int64
 	}
 	perDay := map[string]*dayAgg{}
 	for rows.Next() {
 		var date, status string
-		var estMin int
+		var estSec int
 		var actualSec int64
-		if err := rows.Scan(&date, &status, &estMin, &actualSec); err != nil {
+		if err := rows.Scan(&date, &status, &estSec, &actualSec); err != nil {
 			rows.Close()
 			return stats, err
 		}
@@ -52,14 +52,14 @@ func (s *StatsStore) Range(from, to, categoryID string) (models.Stats, error) {
 		if status == "done" {
 			agg.done++
 		}
-		agg.estMinutes += estMin
+		agg.estSeconds += estSec
 		agg.actualSeconds += actualSec
 
 		stats.TasksTotal++
 		if status == "done" {
 			stats.TasksCompleted++
 		}
-		stats.EstimatedMinutesTotal += estMin
+		stats.EstimatedSecondsTotal += estSec
 		stats.ActualSecondsTotal += actualSec
 	}
 	rows.Close()
@@ -82,7 +82,7 @@ func (s *StatsStore) Range(from, to, categoryID string) (models.Stats, error) {
 	for _, d := range dates {
 		agg := perDay[d]
 		stats.EstVsActualPerDay = append(stats.EstVsActualPerDay, models.EstVsActualDay{
-			Date: d, EstimatedMinutes: agg.estMinutes, ActualSeconds: agg.actualSeconds,
+			Date: d, EstimatedSeconds: agg.estSeconds, ActualSeconds: agg.actualSeconds,
 			Total: agg.total, Done: agg.done,
 		})
 		if agg.total > 0 {

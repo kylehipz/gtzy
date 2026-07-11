@@ -44,7 +44,7 @@ func (s *Server) registerTaskRoutes(r chi.Router) {
 			Notes            string  `json:"notes"`
 			CategoryID       *int64  `json:"category_id"`
 			Priority         string  `json:"priority"`
-			EstimatedMinutes int     `json:"estimated_minutes"`
+			EstimatedSeconds int     `json:"estimated_seconds"`
 			ScheduledDate    *string `json:"scheduled_date"`
 			ScheduledStart   *string `json:"scheduled_start"`
 			SortOrder        int     `json:"sort_order"`
@@ -59,7 +59,7 @@ func (s *Server) registerTaskRoutes(r chi.Router) {
 		}
 		t, err := ts.Create(store.TaskInput{
 			Title: body.Title, Notes: body.Notes, CategoryID: body.CategoryID,
-			Priority: body.Priority, EstimatedMinutes: body.EstimatedMinutes,
+			Priority: body.Priority, EstimatedSeconds: body.EstimatedSeconds,
 			ScheduledDate: body.ScheduledDate, ScheduledStart: body.ScheduledStart,
 			SortOrder: body.SortOrder,
 		})
@@ -96,7 +96,7 @@ func (s *Server) registerTaskRoutes(r chi.Router) {
 			CategoryID       *int64  `json:"category_id"`
 			Priority         *string `json:"priority"`
 			Status           *string `json:"status"`
-			EstimatedMinutes *int    `json:"estimated_minutes"`
+			EstimatedSeconds *int    `json:"estimated_seconds"`
 			ScheduledDate    *string `json:"scheduled_date"`
 			ScheduledStart   *string `json:"scheduled_start"`
 			SortOrder        *int    `json:"sort_order"`
@@ -113,7 +113,7 @@ func (s *Server) registerTaskRoutes(r chi.Router) {
 
 		patch := store.TaskPatch{
 			Title: body.Title, Notes: body.Notes, Priority: body.Priority,
-			Status: body.Status, EstimatedMinutes: body.EstimatedMinutes,
+			Status: body.Status, EstimatedSeconds: body.EstimatedSeconds,
 			SortOrder: body.SortOrder,
 		}
 		if hasKey(raw, "category_id") {

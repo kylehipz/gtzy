@@ -33,7 +33,7 @@ export function TaskForm({
   const [notes, setNotes] = useState(task?.notes ?? '')
   const [priority, setPriority] = useState<Priority>(task?.priority ?? 'medium')
   const [categoryId, setCategoryId] = useState<string>(task?.category_id?.toString() ?? '')
-  const [estimatedMinutes, setEstimatedMinutes] = useState(task?.estimated_minutes ?? 0)
+  const [estimatedSeconds, setEstimatedSeconds] = useState(task?.estimated_seconds ?? 0)
   const [scheduledDate, setScheduledDate] = useState(task?.scheduled_date ?? defaultDate)
   const [scheduledStart, setScheduledStart] = useState(task?.scheduled_start ?? '')
 
@@ -47,6 +47,18 @@ export function TaskForm({
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
   const createRecurrence = useCreateRecurrence()
+
+  // Estimate is edited as hours / minutes / seconds but stored as total seconds.
+  const estHours = Math.floor(estimatedSeconds / 3600)
+  const estMinutes = Math.floor((estimatedSeconds % 3600) / 60)
+  const estSeconds = estimatedSeconds % 60
+  function setEstPart(part: 'h' | 'm' | 's', value: number) {
+    const v = Math.max(0, Number.isFinite(value) ? Math.floor(value) : 0)
+    const h = part === 'h' ? v : estHours
+    const m = part === 'm' ? Math.min(v, 59) : estMinutes
+    const s = part === 's' ? Math.min(v, 59) : estSeconds
+    setEstimatedSeconds(h * 3600 + m * 60 + s)
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -74,7 +86,7 @@ export function TaskForm({
           notes,
           priority,
           category_id,
-          estimated_minutes: estimatedMinutes,
+          estimated_seconds: estimatedSeconds,
           scheduled_date: scheduledDate || null,
           scheduled_start: scheduledStart || null,
         },
@@ -89,7 +101,7 @@ export function TaskForm({
         notes,
         priority,
         category_id: category_id ?? undefined,
-        estimated_minutes: estimatedMinutes,
+        estimated_seconds: estimatedSeconds,
         scheduled_start: scheduledStart || undefined,
         freq: repeatMode,
         interval,
@@ -104,7 +116,7 @@ export function TaskForm({
         notes,
         priority,
         category_id,
-        estimated_minutes: estimatedMinutes,
+        estimated_seconds: estimatedSeconds,
         scheduled_date: scheduledDate || null,
         scheduled_start: scheduledStart || null,
       })
@@ -174,14 +186,35 @@ export function TaskForm({
               ))}
             </select>
           </Field>
-          <Field label="Estimate (min)">
-            <input
-              type="number"
-              min={0}
-              value={estimatedMinutes}
-              onChange={(e) => setEstimatedMinutes(Number(e.target.value))}
-              className="w-full rounded-lg border border-surface0 bg-base px-2 py-1.5 text-sm text-text"
-            />
+          <Field label="Estimate (h / m / s)">
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min={0}
+                value={estHours}
+                onChange={(e) => setEstPart('h', Number(e.target.value))}
+                aria-label="Estimate hours"
+                className="w-full rounded-lg border border-surface0 bg-base px-2 py-1.5 text-sm text-text"
+              />
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={estMinutes}
+                onChange={(e) => setEstPart('m', Number(e.target.value))}
+                aria-label="Estimate minutes"
+                className="w-full rounded-lg border border-surface0 bg-base px-2 py-1.5 text-sm text-text"
+              />
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={estSeconds}
+                onChange={(e) => setEstPart('s', Number(e.target.value))}
+                aria-label="Estimate seconds"
+                className="w-full rounded-lg border border-surface0 bg-base px-2 py-1.5 text-sm text-text"
+              />
+            </div>
           </Field>
           <Field label="Start time">
             <input

@@ -29,7 +29,7 @@ export function TaskCard({
 
   const elapsed = elapsedSecondsLive(task.active_started_at, task.actual_seconds)
   const done = task.status === 'done'
-  const overEstimate = task.estimated_minutes > 0 && elapsed > task.estimated_minutes * 60
+  const overEstimate = task.estimated_seconds > 0 && elapsed > task.estimated_seconds
 
   const tint = category
     ? {
@@ -73,10 +73,10 @@ export function TaskCard({
             <Timer size={12} />
             <span className="font-mono">
               {fmtDuration(elapsed)}
-              {task.estimated_minutes > 0 && ` / ${fmtDuration(task.estimated_minutes * 60)}`}
+              {task.estimated_seconds > 0 && ` / ${fmtDuration(task.estimated_seconds)}`}
             </span>
             {overEstimate && (
-              <span title={`Over estimate by ${fmtDuration(elapsed - task.estimated_minutes * 60)}`}>
+              <span title={`Over estimate by ${fmtDuration(elapsed - task.estimated_seconds)}`}>
                 <AlertTriangle size={12} />
               </span>
             )}

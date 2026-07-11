@@ -17,11 +17,11 @@ func fmtDuration(seconds int64) string {
 }
 
 // percentage returns elapsed/estimated*100 capped at 100, or 0 if no estimate.
-func percentage(elapsedSeconds int64, estimatedMinutes int) int {
-	if estimatedMinutes <= 0 {
+func percentage(elapsedSeconds int64, estimatedSeconds int) int {
+	if estimatedSeconds <= 0 {
 		return 0
 	}
-	p := int((elapsedSeconds * 100) / int64(estimatedMinutes*60))
+	p := int((elapsedSeconds * 100) / int64(estimatedSeconds))
 	if p > 100 {
 		p = 100
 	}
